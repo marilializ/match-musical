@@ -18,8 +18,11 @@ CREATE TABLE Usuario (
     senha VARCHAR(255) NOT NULL,
     id_localizacao INT,
 
-    FOREIGN KEY (id_localizacao)
+    CONSTRAINT fk_usuario_localizacao
+        FOREIGN KEY (id_localizacao)
         REFERENCES Localizacao(id_localizacao)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE
 );
 
 -- 3. TELEFONE
@@ -35,10 +38,13 @@ CREATE TABLE Telefone (
 -- 4. SWIPE
 CREATE TABLE Swipe (
     id_swipe INT AUTO_INCREMENT PRIMARY KEY,
-    data_hora DATETIME NOT NULL,
+    data_hora DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     tipo_decisao VARCHAR(20) NOT NULL,
     id_usuario_realizou INT NOT NULL,
     id_usuario_encontrado INT NOT NULL,
+
+    CONSTRAINT chk_swipe_tipo_decisao
+        CHECK (tipo_decisao IN ('Like', 'Dislike', 'Super Like')),
 
     FOREIGN KEY (id_usuario_realizou)
         REFERENCES Usuario(id_usuario),
@@ -50,10 +56,13 @@ CREATE TABLE Swipe (
 -- 5. MATCH
 CREATE TABLE `Match` (
     id_match INT AUTO_INCREMENT PRIMARY KEY,
-    data_criacao DATETIME NOT NULL,
-    situacao VARCHAR(30) NOT NULL,
+    data_criacao DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    situacao VARCHAR(30) NOT NULL DEFAULT 'Ativo',
     id_usuario_a INT NOT NULL,
     id_usuario_b INT NOT NULL,
+
+    CONSTRAINT chk_match_situacao
+        CHECK (situacao IN ('Ativo', 'Encerrado', 'Convertido', 'Pendente')),
 
     FOREIGN KEY (id_usuario_a)
         REFERENCES Usuario(id_usuario),
@@ -66,7 +75,7 @@ CREATE TABLE `Match` (
 CREATE TABLE Mensagem (
     id_mensagem INT AUTO_INCREMENT PRIMARY KEY,
     conteudo TEXT NOT NULL,
-    data_hora_envio DATETIME NOT NULL,
+    data_hora_envio DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     id_match INT NOT NULL,
     id_usuario INT NOT NULL,
 
@@ -88,8 +97,18 @@ CREATE TABLE Musico (
     biografia TEXT,
     categoria_principal VARCHAR(100),
 
-    FOREIGN KEY (id_usuario)
+    CONSTRAINT chk_musico_nivel_experiencia
+        CHECK (nivel_experiencia IS NULL OR nivel_experiencia IN
+            ('Iniciante', 'Basico', 'Intermediario', 'Avancado', 'Profissional')),
+
+    CONSTRAINT chk_musico_data_nascimento
+        CHECK (data_nascimento IS NULL OR data_nascimento <= CURRENT_DATE),
+
+    CONSTRAINT fk_musico_usuario
+        FOREIGN KEY (id_usuario)
         REFERENCES Usuario(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 -- 8. LINKS
@@ -116,6 +135,9 @@ CREATE TABLE Toca (
     tempo_experiencia INT,
 
     PRIMARY KEY (id_musico, id_instrumento),
+
+    CONSTRAINT chk_toca_tempo_experiencia
+        CHECK (tempo_experiencia IS NULL OR tempo_experiencia >= 0),
 
     FOREIGN KEY (id_musico)
         REFERENCES Musico(id_usuario),
@@ -167,8 +189,14 @@ CREATE TABLE Grupo_Musical (
     situacao VARCHAR(50),
     cidade_atuacao VARCHAR(100),
 
-    FOREIGN KEY (id_usuario)
+    CONSTRAINT chk_grupo_musical_situacao
+        CHECK (situacao IS NULL OR situacao IN ('Ativo', 'Inativo')),
+
+    CONSTRAINT fk_grupo_musical_usuario
+        FOREIGN KEY (id_usuario)
         REFERENCES Usuario(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 -- 14b. GRUPO_GENERO
@@ -191,10 +219,16 @@ CREATE TABLE Participa (
     id_grupo_musical INT NOT NULL,
     data_entrada DATE NOT NULL,
     funcao VARCHAR(100),
-    situacao VARCHAR(50),
+    situacao VARCHAR(50) DEFAULT 'Ativo',
     data_saida DATE,
 
     PRIMARY KEY (id_musico, id_grupo_musical),
+
+    CONSTRAINT chk_participa_situacao
+        CHECK (situacao IS NULL OR situacao IN ('Ativo', 'Inativo')),
+
+    CONSTRAINT chk_participa_datas
+        CHECK (data_saida IS NULL OR data_saida >= data_entrada),
 
     FOREIGN KEY (id_musico)
         REFERENCES Musico(id_usuario),
@@ -208,8 +242,11 @@ CREATE TABLE Banda (
     id_grupo_musical INT PRIMARY KEY,
     descricao_formacao TEXT,
 
-    FOREIGN KEY (id_grupo_musical)
+    CONSTRAINT fk_banda_grupo
+        FOREIGN KEY (id_grupo_musical)
         REFERENCES Grupo_Musical(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 -- 17. ORQUESTRA
@@ -218,8 +255,14 @@ CREATE TABLE Orquestra (
     categoria VARCHAR(100),
     qnt_integrantes INT,
 
-    FOREIGN KEY (id_grupo_musical)
+    CONSTRAINT chk_orquestra_qnt_integrantes
+        CHECK (qnt_integrantes IS NULL OR qnt_integrantes > 0),
+
+    CONSTRAINT fk_orquestra_grupo
+        FOREIGN KEY (id_grupo_musical)
         REFERENCES Grupo_Musical(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 -- 18. CORAL
@@ -227,18 +270,28 @@ CREATE TABLE Coral (
     id_grupo_musical INT PRIMARY KEY,
     formacao_vocal VARCHAR(150),
 
-    FOREIGN KEY (id_grupo_musical)
+    CONSTRAINT fk_coral_grupo
+        FOREIGN KEY (id_grupo_musical)
         REFERENCES Grupo_Musical(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 -- 19. VAGA
 CREATE TABLE Vaga (
     id_vaga INT AUTO_INCREMENT PRIMARY KEY,
-    situacao VARCHAR(50) NOT NULL,
+    situacao VARCHAR(50) NOT NULL DEFAULT 'Aberta',
     descricao TEXT,
     nivel_minimo VARCHAR(50),
     funcao_instrumento VARCHAR(100),
     id_grupo_musical INT NOT NULL,
+
+    CONSTRAINT chk_vaga_situacao
+        CHECK (situacao IN ('Aberta', 'Fechada')),
+
+    CONSTRAINT chk_vaga_nivel_minimo
+        CHECK (nivel_minimo IS NULL OR nivel_minimo IN
+            ('Iniciante', 'Basico', 'Intermediario', 'Avancado', 'Profissional')),
 
     FOREIGN KEY (id_grupo_musical)
         REFERENCES Grupo_Musical(id_usuario)

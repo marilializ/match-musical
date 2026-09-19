@@ -1,4 +1,3 @@
-
 CREATE DATABASE IF NOT EXISTS match_musical;
 USE match_musical;
 SHOW TABLES;
@@ -167,10 +166,20 @@ CREATE TABLE Grupo_Musical (
     descricao TEXT,
     situacao VARCHAR(50),
     cidade_atuacao VARCHAR(100),
-    id_genero_musical INT,
 
     FOREIGN KEY (id_usuario)
-        REFERENCES Usuario(id_usuario),
+        REFERENCES Usuario(id_usuario)
+);
+
+-- 14b. GRUPO_GENERO
+CREATE TABLE Grupo_Genero (
+    id_grupo_musical INT NOT NULL,
+    id_genero_musical INT NOT NULL,
+
+    PRIMARY KEY (id_grupo_musical, id_genero_musical),
+
+    FOREIGN KEY (id_grupo_musical)
+        REFERENCES Grupo_Musical(id_usuario),
 
     FOREIGN KEY (id_genero_musical)
         REFERENCES Genero_Musical(id_genero_musical)

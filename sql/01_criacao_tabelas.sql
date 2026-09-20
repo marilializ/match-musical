@@ -101,8 +101,9 @@ CREATE TABLE Musico (
         CHECK (nivel_experiencia IS NULL OR nivel_experiencia IN
             ('Iniciante', 'Basico', 'Intermediario', 'Avancado', 'Profissional')),
 
-    CONSTRAINT chk_musico_data_nascimento
-        CHECK (data_nascimento IS NULL OR data_nascimento <= CURRENT_DATE),
+    -- chk_musico_data_nascimento removido: MySQL nao permite funcoes nao
+    -- deterministicas (CURRENT_DATE/CURDATE/NOW) em expressoes de CHECK
+    -- (erro 3814). Validar "nao nascer no futuro" exigiria um TRIGGER.
 
     CONSTRAINT fk_musico_usuario
         FOREIGN KEY (id_usuario)

@@ -43,8 +43,11 @@ CREATE TABLE Telefone (
     telefone VARCHAR(20) NOT NULL,
     id_usuario INT NOT NULL,
 
-    FOREIGN KEY (id_usuario)
+    CONSTRAINT fk_telefone_usuario
+        FOREIGN KEY (id_usuario)
         REFERENCES Usuario(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 -- 4. SWIPE
@@ -60,11 +63,19 @@ CREATE TABLE Swipe (
     CONSTRAINT chk_swipe_tipo_decisao
         CHECK (tipo_decisao IN ('Like', 'Dislike', 'Super Like')),
 
-    FOREIGN KEY (id_usuario_realizou)
-        REFERENCES Usuario(id_usuario),
-
-    FOREIGN KEY (id_usuario_encontrado)
+    -- CASCADE: o swipe so faz sentido enquanto os dois usuarios existem;
+    -- excluir um deles leva junto os swipes em que ele aparece.
+    CONSTRAINT fk_swipe_usuario_realizou
+        FOREIGN KEY (id_usuario_realizou)
         REFERENCES Usuario(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_swipe_usuario_encontrado
+        FOREIGN KEY (id_usuario_encontrado)
+        REFERENCES Usuario(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 -- 5. MATCH
@@ -83,11 +94,20 @@ CREATE TABLE `Match` (
     CONSTRAINT chk_match_situacao
         CHECK (situacao IN ('Ativo', 'Encerrado', 'Convertido', 'Pendente')),
 
-    FOREIGN KEY (id_usuario_a)
-        REFERENCES Usuario(id_usuario),
-
-    FOREIGN KEY (id_usuario_b)
+    -- CASCADE: um match e a relacao entre dois usuarios; se um deles deixa de
+    -- existir, o match deixa de existir junto (e leva suas mensagens, via
+    -- fk_mensagem_match).
+    CONSTRAINT fk_match_usuario_a
+        FOREIGN KEY (id_usuario_a)
         REFERENCES Usuario(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_match_usuario_b
+        FOREIGN KEY (id_usuario_b)
+        REFERENCES Usuario(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 -- 6. MENSAGEM
@@ -98,11 +118,18 @@ CREATE TABLE Mensagem (
     id_match INT NOT NULL,
     id_usuario INT NOT NULL,
 
-    FOREIGN KEY (id_match)
-        REFERENCES `Match`(id_match),
+    -- A mensagem nao existe fora do match nem sem o seu autor: CASCADE nas duas.
+    CONSTRAINT fk_mensagem_match
+        FOREIGN KEY (id_match)
+        REFERENCES `Match`(id_match)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
 
-    FOREIGN KEY (id_usuario)
+    CONSTRAINT fk_mensagem_usuario
+        FOREIGN KEY (id_usuario)
         REFERENCES Usuario(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 -- 7. MUSICO
@@ -143,8 +170,11 @@ CREATE TABLE Links (
     link VARCHAR(500) NOT NULL,
     id_musico INT NOT NULL,
 
-    FOREIGN KEY (id_musico)
+    CONSTRAINT fk_links_musico
+        FOREIGN KEY (id_musico)
         REFERENCES Musico(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 -- 9. INSTRUMENTO
@@ -168,11 +198,19 @@ CREATE TABLE Toca (
     CONSTRAINT chk_toca_tempo_experiencia
         CHECK (tempo_experiencia IS NULL OR tempo_experiencia >= 0),
 
-    FOREIGN KEY (id_musico)
-        REFERENCES Musico(id_usuario),
+    CONSTRAINT fk_toca_musico
+        FOREIGN KEY (id_musico)
+        REFERENCES Musico(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
 
-    FOREIGN KEY (id_instrumento)
+    -- RESTRICT: Instrumento e tabela de dominio; nao pode ser apagado enquanto
+    -- algum musico ainda o toca.
+    CONSTRAINT fk_toca_instrumento
+        FOREIGN KEY (id_instrumento)
         REFERENCES Instrumento(id_instrumento)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
 );
 
 -- 11. GENERO MUSICAL
@@ -191,11 +229,18 @@ CREATE TABLE Interesse (
 
     PRIMARY KEY (id_musico, id_genero_musical),
 
-    FOREIGN KEY (id_musico)
-        REFERENCES Musico(id_usuario),
+    CONSTRAINT fk_interesse_musico
+        FOREIGN KEY (id_musico)
+        REFERENCES Musico(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
 
-    FOREIGN KEY (id_genero_musical)
+    -- RESTRICT: Genero_Musical e tabela de dominio.
+    CONSTRAINT fk_interesse_genero
+        FOREIGN KEY (id_genero_musical)
         REFERENCES Genero_Musical(id_genero_musical)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
 );
 
 -- 13. TOCOU COM
@@ -207,11 +252,17 @@ CREATE TABLE Tocou_com (
 
     PRIMARY KEY (id_musico_1, id_musico_2),
 
-    FOREIGN KEY (id_musico_1)
-        REFERENCES Musico(id_usuario),
-
-    FOREIGN KEY (id_musico_2)
+    CONSTRAINT fk_tocou_com_musico_1
+        FOREIGN KEY (id_musico_1)
         REFERENCES Musico(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_tocou_com_musico_2
+        FOREIGN KEY (id_musico_2)
+        REFERENCES Musico(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 -- 14. GRUPO MUSICAL
@@ -247,11 +298,18 @@ CREATE TABLE Grupo_Genero (
 
     PRIMARY KEY (id_grupo_musical, id_genero_musical),
 
-    FOREIGN KEY (id_grupo_musical)
-        REFERENCES Grupo_Musical(id_usuario),
+    CONSTRAINT fk_grupo_genero_grupo
+        FOREIGN KEY (id_grupo_musical)
+        REFERENCES Grupo_Musical(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
 
-    FOREIGN KEY (id_genero_musical)
+    -- RESTRICT: Genero_Musical e tabela de dominio.
+    CONSTRAINT fk_grupo_genero_genero
+        FOREIGN KEY (id_genero_musical)
         REFERENCES Genero_Musical(id_genero_musical)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
 );
 
 -- 15. PARTICIPA
@@ -275,11 +333,17 @@ CREATE TABLE Participa (
     CONSTRAINT chk_participa_datas
         CHECK (data_saida IS NULL OR data_saida >= data_entrada),
 
-    FOREIGN KEY (id_musico)
-        REFERENCES Musico(id_usuario),
+    CONSTRAINT fk_participa_musico
+        FOREIGN KEY (id_musico)
+        REFERENCES Musico(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
 
-    FOREIGN KEY (id_grupo_musical)
+    CONSTRAINT fk_participa_grupo
+        FOREIGN KEY (id_grupo_musical)
         REFERENCES Grupo_Musical(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 -- 16. BANDA
@@ -347,8 +411,12 @@ CREATE TABLE Vaga (
         CHECK (nivel_minimo IS NULL OR nivel_minimo IN
             ('Iniciante', 'Basico', 'Intermediario', 'Avancado', 'Profissional')),
 
-    FOREIGN KEY (id_grupo_musical)
+    -- A vaga nao existe sem o grupo que a criou: CASCADE.
+    CONSTRAINT fk_vaga_grupo
+        FOREIGN KEY (id_grupo_musical)
         REFERENCES Grupo_Musical(id_usuario)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 -- 20. REQUISITO VAGA
@@ -364,6 +432,11 @@ CREATE TABLE Requisito_Vaga (
 
     PRIMARY KEY (id_vaga, id_requisito),
 
-    FOREIGN KEY (id_vaga)
+    -- ENTIDADE FRACA: o requisito depende existencialmente da Vaga, entao
+    -- apagar a Vaga tem obrigatoriamente que apagar seus requisitos: CASCADE.
+    CONSTRAINT fk_requisito_vaga
+        FOREIGN KEY (id_vaga)
         REFERENCES Vaga(id_vaga)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );

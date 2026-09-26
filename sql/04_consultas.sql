@@ -128,7 +128,7 @@ WHERE v.situacao = 'Aberta'
       )
 ORDER BY FIELD(v.nivel_minimo,
                'Iniciante','Basico','Intermediario','Avancado','Profissional') DESC,
-         g.nome_grupo;
+         g.nome_grupo, v.id_vaga;
 
 -- =====================================================
 -- CONSULTA 7: Oferta x procura por gênero musical

@@ -71,6 +71,7 @@ public class MusicoFrame extends JFrame {
         JButton excluir = new JButton("Excluir selecionado");
         JButton recarregar = new JButton("Recarregar");
         JButton abrirVagas = new JButton("Vagas");
+        JButton abrirDashboard = new JButton("Dashboard");
         JPanel botoes = new JPanel(new FlowLayout(FlowLayout.LEFT));
         botoes.add(novo);
         botoes.add(cadastrar);
@@ -78,6 +79,7 @@ public class MusicoFrame extends JFrame {
         botoes.add(excluir);
         botoes.add(recarregar);
         botoes.add(abrirVagas);
+        botoes.add(abrirDashboard);
 
         JPanel topo = new JPanel(new BorderLayout());
         topo.add(campos, BorderLayout.CENTER);
@@ -99,6 +101,7 @@ public class MusicoFrame extends JFrame {
         excluir.addActionListener(event -> excluir());
         recarregar.addActionListener(event -> carregar());
         abrirVagas.addActionListener(event -> new VagaFrame().setVisible(true));
+        abrirDashboard.addActionListener(event -> new DashboardFrame().setVisible(true));
         carregar();
     }
 

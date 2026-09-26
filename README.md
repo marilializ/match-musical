@@ -22,8 +22,12 @@ export SYNC_DB_PASSWORD='sua_senha_local'
 
 ## Compilar
 
-Use um JDK 17 ou superior e execute `mvn package`. O `pom.xml` baixa o MySQL Connector/J e compila as classes existentes em `src/`. Com as variaveis de conexao configuradas, rode `mvn exec:java` para abrir a tela de musicos (ou execute `Main` pela IDE). A classe `ConnectionFactory` abre conexoes com o banco; `BaseDAO` fornece consultas e atualizacoes com `PreparedStatement`, alem de um helper para transacoes. `MusicoDAO` implementa o CRUD de `Usuario` + `Musico`; o DAO de Vaga ainda precisa ser implementado.
+Use um JDK 17 ou superior e execute `mvn package`. O `pom.xml` baixa o MySQL Connector/J e compila as classes existentes em `src/`. Com as variaveis de conexao configuradas, rode `mvn exec:java` para abrir a tela de musicos (ou execute `Main` pela IDE). O botao **Vagas** abre a tela de vagas. A classe `ConnectionFactory` abre conexoes com o banco; `BaseDAO` fornece consultas e atualizacoes com `PreparedStatement`, alem de um helper para transacoes. `MusicoDAO` implementa o CRUD de `Usuario` + `Musico`; `VagaDAO` implementa o CRUD de `Vaga` + `Requisito_Vaga`.
 
 Na tela de musicos, selecione uma linha para editar ou excluir. Ao atualizar, deixe a senha vazia para mante-la. A exclusao pede confirmacao e remove o usuario e seus registros dependentes pelas FKs com `ON DELETE CASCADE`.
 
+Na tela de vagas, escolha um grupo musical, informe situacao, funcao, nivel e requisitos (um por linha). Selecione uma vaga na tabela para alterar ou excluir. Os requisitos sao numerados dentro de cada vaga; ao excluir a vaga, seus requisitos sao removidos em cascata.
+
 Para repetir o teste de integracao do DAO em um banco de teste com as variaveis `SYNC_DB_*` configuradas, use `mvn test-compile exec:java -Dexec.mainClass=MusicoDAOIntegrationCheck -Dexec.classpathScope=test`. O teste cria e remove um musico de teste, verificando tambem rollback e exclusao em cascata.
+
+Para testar o DAO de vagas no mesmo banco de teste, use `mvn test-compile exec:java -Dexec.mainClass=VagaDAOIntegrationCheck -Dexec.classpathScope=test`. Ele cria e remove vagas de teste, incluindo requisitos, rollback e erro de chave estrangeira.

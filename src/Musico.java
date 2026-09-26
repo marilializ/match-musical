@@ -1,8 +1,7 @@
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 public class Musico extends Usuario{
-    private LocalDateTime disponibilidade;
+    private String disponibilidade;
     private String nome;
     private String nomeArtistico;
     private String biografia;
@@ -10,7 +9,7 @@ public class Musico extends Usuario{
     private LocalDate datadeNascimento;
     private String niveldeExperiencia;
 
-    public Musico (long id, String senha, String email, String nomedeUsuario, LocalDateTime disponibilidade, String nome, String nomeArtistico, String biografia, String categoriaPrincipal, LocalDate datadeNascimento, String niveldeExperiencia){
+    public Musico (long id, String senha, String email, String nomedeUsuario, String disponibilidade, String nome, String nomeArtistico, String biografia, String categoriaPrincipal, LocalDate datadeNascimento, String niveldeExperiencia){
         super (nomedeUsuario, senha, email, id);
         this.disponibilidade=disponibilidade;
         this.nome=nome;
@@ -21,11 +20,11 @@ public class Musico extends Usuario{
         this.niveldeExperiencia=niveldeExperiencia;
     }
 
-    public LocalDateTime getDisponibilidade() {
+    public String getDisponibilidade() {
         return disponibilidade;
     }
 
-    public void setDisponibilidade(LocalDateTime disponibilidade) {
+    public void setDisponibilidade(String disponibilidade) {
         this.disponibilidade = disponibilidade;
     }
 

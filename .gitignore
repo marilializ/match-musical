@@ -28,3 +28,8 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+# Configuracao local e artefatos Maven
+.env
+target/
+backups/

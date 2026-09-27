@@ -133,9 +133,10 @@ A disciplina pede que o grupo informe onde usou IA e como validou o que ela prod
 
 | Onde | Ferramenta | O que a IA fez | Como o grupo validou |
 |---|---|---|---|
-| Verificacao da Entrega 03 e documentacao | Claude Code | Subiu um MySQL local, rodou `01` + `02`, conferiu integridade (disjuncao Musico/Grupo, particao Banda/Orquestra/Coral, autor de mensagem pertencente ao match), executou as 8 consultas pelo `DashboardDAO`, rodou os dois testes de integracao, testou o script `03` sobre o esquema da Entrega 02 e escreveu este README e o roteiro de teste. Tambem alinhou o `ORDER BY` da consulta 6 entre `04_consultas.sql` e `ConsultaSQL.java`. | *(preencher: quem revisou e o que conferiu)* |
-| *(preencher: ex. DDL / FKs)* | *(ferramenta)* | *(o que ela sugeriu)* | *(ex.: rodamos o script no Workbench, comparamos com o Esquema Relacional)* |
-| *(preencher: ex. DAOs / telas)* | | | |
-| *(preencher: ex. consultas / dashboard)* | | | |
+| Verificacao da Entrega 03 e documentacao | Claude Code | Subiu um MySQL local, rodou `01` + `02`, conferiu integridade (disjuncao Musico/Grupo, particao Banda/Orquestra/Coral, autor de mensagem pertencente ao match), executou as 8 consultas pelo `DashboardDAO`, rodou os dois testes de integracao, testou o script `03` sobre o esquema da Entrega 02 e escreveu este README e o roteiro de teste. Tambem alinhou o `ORDER BY` da consulta 6 entre `04_consultas.sql` e `ConsultaSQL.java`. | *(Validamos manualmente todos os requisitos e consultas)* |
+| Construcao do codigo (as 3 etapas que fiz) | Claude | Guiou a construcao do codigo, tirou duvidas e ajudou a entender os erros que apareciam | *(Validamos manualmente todos os requisitos e consultas)* |
+| Validacao da Fase 6 | Claude | Ajudou a validar a fase 6 | *(Validamos manualmente todos os requisitos e consultas)* |
+| Consultas SQL (as 8 consultas) | Claude | Apoio para elaborar as 8 consultas e para corrigir erros no codigo | *(Validamos manualmente todos os requisitos e consultas)* |
+| Classes ConsultaSQL, DashboardDAO, DashboardFrame e GraficoBarrasPanel | Claude | Ajudou a criar essas classes | *(Validamos manualmente todos os requisitos e consultas)* |
 
 *(preencher: a regra que o grupo seguiu para aceitar o que a IA gerou — por exemplo, "nenhum SQL entrou sem ser executado no MySQL e revisado por um integrante que soubesse explica-lo")*

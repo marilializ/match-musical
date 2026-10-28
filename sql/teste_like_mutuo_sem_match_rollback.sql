@@ -8,7 +8,7 @@
 -- tudo com ROLLBACK.
 --
 -- Uso (na pasta onde esta o arquivo da consulta):
---   mysql -u sync_app -p <nome_do_banco> < teste_like_mutuo_sem_match_rollback.sql
+--   mysql --commands -u sync_app -p <nome_do_banco> < teste_like_mutuo_sem_match_rollback.sql
 -- Requer tabelas InnoDB (necessario para o ROLLBACK).
 -- =====================================================
 SELECT COUNT(*) AS swipes_antes FROM Swipe;

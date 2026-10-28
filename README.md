@@ -78,6 +78,27 @@ As 8 consultas estao comentadas em `sql/04_consultas.sql`. O mesmo SQL e usado n
 
 Por que `LEFT JOIN` na 2 e na 4: com `JOIN` simples, instrumentos sem musico e matches sem mensagem sumiriam do resultado. Por que `NOT EXISTS` na 3: diferente de `NOT IN`, nao quebra se a subconsulta devolver `NULL`.
 
+### Consulta de auditoria Swipe x Match (Etapa 4, item 5)
+
+Arquivo: `sql/consulta_full_outer_join_swipe_match.sql`. Responde: "quais pares de usuarios tem interesse mutuo nos swipes mas nao possuem `Match`, e quais `Match`es existem sem interesse mutuo registrado?". O MySQL nao tem `FULL OUTER JOIN`, entao ele e emulado com `LEFT JOIN` + `UNION ALL` + `RIGHT JOIN ... WHERE ... IS NULL`. A consulta tambem usa CTE (exige MySQL 8 ou superior), auto join em `Swipe` e `LEAST`/`GREATEST` para normalizar o par, ja que `Match` nao tem ordem fixa entre `id_usuario_a` e `id_usuario_b`.
+
+| diagnostico | Significado |
+|---|---|
+| `Consistente` | interesse mutuo nos swipes e `Match` registrado |
+| `Like mutuo sem match` | os dois usuarios demonstraram interesse, mas nao ha `Match` |
+| `Match sem like mutuo` | existe `Match` sem interesse mutuo registrado nos swipes |
+
+Decisoes: `Like` e `Super Like` contam como interesse (`Dislike` nao); o resultado tem uma linha por `Match`; swipes repetidos na mesma direcao sao absorvidos por `DISTINCT`, ja que `Swipe` nao tem `UNIQUE`.
+
+Com a carga de exemplo o resultado e de 30 linhas (2 `Consistente`, 28 `Match sem like mutuo` e nenhuma `Like mutuo sem match`). Como a carga nao tem esse terceiro caso, `sql/teste_like_mutuo_sem_match_rollback.sql` cria um like mutuo sem `Match` dentro de uma transacao, roda a consulta (31 linhas, com 1 `Like mutuo sem match`) e desfaz tudo com `ROLLBACK`. Execute a partir da pasta `sql/`:
+
+```sh
+mysql -u sync_app -p match_musical < consulta_full_outer_join_swipe_match.sql
+mysql --commands -u sync_app -p match_musical < teste_like_mutuo_sem_match_rollback.sql
+```
+
+O teste usa `SOURCE`, por isso o `--commands` (alguns clientes `mysql`, como o 26.7, vem com comandos locais desligados), e exige tabelas InnoDB. O `AUTO_INCREMENT` de `Swipe` avanca mesmo com o `ROLLBACK` (comportamento normal do InnoDB), entao os ids de swipe podem pular. Esta consulta ainda nao aparece no dashboard: `ConsultaSQL.java` guarda so as 8 consultas da Etapa 3.
+
 ## Estrutura de pastas
 
 ```
@@ -88,7 +109,9 @@ match-musical/
 │   ├── 01_criacao_tabelas.sql      DDL final (fonte de verdade: Esquema Relacional)
 │   ├── 02_insercao_dados.sql       carga de exemplo (~30 linhas por tabela)
 │   ├── 03_migracao_entrega03.sql   converte uma base da Entrega 02 para o esquema atual
-│   └── 04_consultas.sql            as 8 consultas comentadas
+│   ├── 04_consultas.sql            as 8 consultas comentadas
+│   ├── consulta_full_outer_join_swipe_match.sql   auditoria Swipe x Match (Etapa 4): FULL OUTER JOIN emulado
+│   └── teste_like_mutuo_sem_match_rollback.sql    teste da auditoria, dentro de transacao com ROLLBACK
 ├── src/
 │   ├── Main.java                   ponto de entrada (abre MusicoFrame)
 │   ├── ConnectionFactory.java      abre conexoes JDBC a partir das variaveis de ambiente
@@ -138,5 +161,6 @@ A disciplina pede que o grupo informe onde usou IA e como validou o que ela prod
 | Validacao da Fase 6 | Claude | Ajudou a validar a fase 6 | *(Validamos manualmente todos os requisitos e consultas)* |
 | Consultas SQL (as 8 consultas) | Claude | Apoio para elaborar as 8 consultas e para corrigir erros no codigo | *(Validamos manualmente todos os requisitos e consultas)* |
 | Classes ConsultaSQL, DashboardDAO, DashboardFrame e GraficoBarrasPanel | Claude | Ajudou a criar essas classes | *(Validamos manualmente todos os requisitos e consultas)* |
+| Consulta de auditoria Swipe x Match (Etapa 4, item 5) | Claude e Claude Code | O Claude gerou a consulta (FULL OUTER JOIN emulado) e o script de teste com rollback. O Claude Code levantou antes o estado do projeto (DDL de `Swipe` e `Match`, carga, versao do MySQL, consultas existentes), rodou a consulta e o teste no MySQL local e interpretou o `EXPLAIN`. | Consulta executada no MySQL local: 30 linhas (2 `Consistente`, 28 `Match sem like mutuo`), cada `Match` aparece uma vez (30 ids distintos = `COUNT(*)` de `Match`). Teste com `ROLLBACK`: 31 linhas, com 1 `Like mutuo sem match` para o par (1,3), e `Swipe` voltou a 40 linhas. |
 
 *(preencher: a regra que o grupo seguiu para aceitar o que a IA gerou — por exemplo, "nenhum SQL entrou sem ser executado no MySQL e revisado por um integrante que soubesse explica-lo")*

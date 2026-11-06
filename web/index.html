@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#100f14">
+  <meta name="description" content="SYNC — encontre sua próxima conexão musical.">
+  <title>SYNC — Encontre sua sintonia</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.8l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.5a5.5 5.5 0 0 0 0-7.8z"/></symbol>
+    <symbol id="i-briefcase" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-7-7 7 7-7 7"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13M9 8l12-2"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 2.1 7.9L22 12l-7.9 2.1L12 22l-2.1-7.9L2 12l7.9-2.1z"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M5 5 19 19M19 5 5 19"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  </svg>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#inicio" aria-label="SYNC, início"><span class="brand-mark"><svg><use href="#i-music"></use></svg></span><span>sync<span class="brand-dot">.</span></span></a>
+      <p class="sidebar-caption">SUA MÚSICA COMEÇA AQUI</p>
+      <nav class="sidebar-nav" aria-label="Navegação principal">
+        <a href="#inicio" data-nav="inicio"><svg><use href="#i-home"></use></svg>Início</a>
+        <a href="#descobrir" data-nav="descobrir"><svg><use href="#i-compass"></use></svg>Descobrir</a>
+        <a href="#vagas" data-nav="vagas"><svg><use href="#i-briefcase"></use></svg>Vagas</a>
+        <a href="#matches" data-nav="matches"><svg><use href="#i-heart"></use></svg>Matches</a>
+        <a href="#perfil" data-nav="perfil"><svg><use href="#i-user"></use></svg>Meu perfil</a>
+      </nav>
+      <div class="sidebar-foot"><span class="pulse-dot"></span><span>Feito para quem vive de música.</span></div>
+    </aside>
+    <div class="main-column">
+      <header class="topbar">
+        <a class="brand mobile-brand" href="#inicio" aria-label="SYNC, início"><span class="brand-mark"><svg><use href="#i-music"></use></svg></span><span>sync<span class="brand-dot">.</span></span></a>
+        <span class="topbar-label" id="page-label">Início</span>
+        <div class="topbar-right"><span class="connection-badge" id="connection-badge">Conectando</span><label class="profile-select-label"><span class="sr-only">Perfil de demonstração</span><select id="user-select" aria-label="Perfil de demonstração"></select></label></div>
+      </header>
+      <main id="app-main" tabindex="-1" aria-live="polite"></main>
+      <footer class="page-footer">SYNC · Feito para conectar talentos e histórias.</footer>
+    </div>
+  </div>
+  <nav class="bottom-nav" aria-label="Navegação principal">
+    <a href="#inicio" data-nav="inicio"><svg><use href="#i-home"></use></svg><span>Início</span></a>
+    <a href="#descobrir" data-nav="descobrir"><svg><use href="#i-compass"></use></svg><span>Descobrir</span></a>
+    <a href="#vagas" data-nav="vagas"><svg><use href="#i-briefcase"></use></svg><span>Vagas</span></a>
+    <a href="#matches" data-nav="matches"><svg><use href="#i-heart"></use></svg><span>Matches</span></a>
+    <a href="#perfil" data-nav="perfil"><svg><use href="#i-user"></use></svg><span>Perfil</span></a>
+  </nav>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

@@ -51,6 +51,12 @@ mvn exec:java      # abre a tela de Musicos (classe Main)
 
 Tambem da para executar `Main` direto pela IDE.
 
+## Interface web responsiva (em desenvolvimento)
+
+A nova interface mobile first esta em [`web/`](web/README.md), com Inicio, Descobrir, Vagas, Matches e Perfil. O servidor local le o MySQL pelo mesmo `ConnectionFactory` do app Swing. Inicie com `mvn compile exec:java -Dexec.mainClass=WebMain` e abra `http://127.0.0.1:8080`. Sem banco, a tela mostra dados de demonstracao.
+
+A selecao de perfil ainda nao e login; por seguranca, o servidor atende apenas em `127.0.0.1`. Consulte [`web/README.md`](web/README.md) para detalhes.
+
 ## Telas
 
 | Tela | Como abrir | O que faz | Tabelas |

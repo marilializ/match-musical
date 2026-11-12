@@ -56,7 +56,7 @@ public final class WebMain {
             Map<String, Object> body = map(
                     "musicians", musicians,
                     "groups", groups(connection, user),
-                    "vacancies", vacancies(connection),
+                    "vacancies", vacancies(connection, user),
                     "matches", matches(connection, user),
                     "stats", stats(connection, user)
             );
@@ -191,20 +191,29 @@ public final class WebMain {
         return rows;
     }
 
-    private static List<Map<String, Object>> vacancies(Connection c) throws SQLException {
+    /**
+     * Vagas abertas com a compatibilidade do musico selecionado (Etapa 5,
+     * funcao fn_compatibilidade_vaga). O "?" recebe o id do musico.
+     */
+    private static List<Map<String, Object>> vacancies(Connection c, int user) throws SQLException {
         List<Map<String, Object>> rows = new ArrayList<>();
         String sql = """
             SELECT v.id_vaga, v.funcao_instrumento, v.id_grupo_musical,
-                   g.nome_grupo, g.cidade_atuacao, v.nivel_minimo, v.descricao
+                   g.nome_grupo, g.cidade_atuacao, v.nivel_minimo, v.descricao,
+                   fn_compatibilidade_vaga(?, v.id_vaga) AS compatibilidade
               FROM Vaga v JOIN Grupo_Musical g ON g.id_usuario = v.id_grupo_musical
              WHERE v.situacao = 'Aberta'
              ORDER BY v.id_vaga
             """;
-        try (PreparedStatement s = c.prepareStatement(sql); ResultSet r = s.executeQuery()) {
-            while (r.next()) rows.add(map(
-                    "id", r.getInt(1), "title", r.getString(2), "groupId", r.getInt(3),
-                    "group", r.getString(4), "city", r.getString(5),
-                    "level", r.getString(6), "description", r.getString(7)));
+        try (PreparedStatement s = c.prepareStatement(sql)) {
+            s.setInt(1, user);
+            try (ResultSet r = s.executeQuery()) {
+                while (r.next()) rows.add(map(
+                        "id", r.getInt(1), "title", r.getString(2), "groupId", r.getInt(3),
+                        "group", r.getString(4), "city", r.getString(5),
+                        "level", r.getString(6), "description", r.getString(7),
+                        "compatibility", r.getString(8)));
+            }
         }
         return rows;
     }

@@ -8,8 +8,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,6 +38,8 @@ public final class WebMain {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", PORT), 0);
         server.createContext("/api/bootstrap", WebMain::bootstrap);
         server.createContext("/api/swipes", WebMain::swipe);
+        server.createContext("/api/matches/convert", WebMain::convertMatch);
+        server.createContext("/api/groups/sync", WebMain::syncGroups);
         server.createContext("/", WebMain::staticFile);
         server.setExecutor(Executors.newFixedThreadPool(4));
         server.start();
@@ -58,7 +62,8 @@ public final class WebMain {
                     "groups", groups(connection, user),
                     "vacancies", vacancies(connection, user),
                     "matches", matches(connection, user),
-                    "stats", stats(connection, user)
+                    "stats", stats(connection, user),
+                    "matchLog", matchLog(connection)
             );
             sendJson(exchange, 200, body);
         } catch (SQLException error) {
@@ -135,6 +140,131 @@ public final class WebMain {
         } catch (SQLException error) {
             System.err.println("Falha ao registrar swipe: " + error.getMessage());
             sendJson(exchange, 503, map("error", "Nao foi possivel registrar o swipe."));
+        }
+    }
+
+    // ------------------------------------------------------------ Etapa 6
+
+    /**
+     * Botao "Converter em participacao" (Etapa 5, pessoa 4).
+     * Chama sp_converter_match_em_participacao. Quando o procedimento recusa
+     * (SIGNAL SQLSTATE '45000'), a mensagem dele e devolvida para a tela.
+     * O trigger tr_match_log_situacao (pessoa 2) grava o log sozinho.
+     */
+    private static void convertMatch(HttpExchange exchange) throws IOException {
+        Map<String, String> form = postForm(exchange);
+        if (form == null) return;
+        int user = integer(form.get("user"), 0);
+        int match = integer(form.get("match"), 0);
+        String role = form.getOrDefault("role", "").trim();
+        if (user <= 0 || match <= 0) {
+            sendJson(exchange, 400, map("error", "Match invalido."));
+            return;
+        }
+        if (role.isEmpty() || role.length() > 100) {
+            sendJson(exchange, 400, map("error", "Informe a sua funcao no grupo (ate 100 caracteres)."));
+            return;
+        }
+        try (Connection connection = ConnectionFactory.getConnection()) {
+            // So converte um match do musico selecionado na tela.
+            try (PreparedStatement own = connection.prepareStatement(
+                    "SELECT 1 FROM " + MATCH_TABLE + " WHERE id_match = ? AND (id_usuario_a = ? OR id_usuario_b = ?)")) {
+                own.setInt(1, match); own.setInt(2, user); own.setInt(3, user);
+                try (ResultSet r = own.executeQuery()) {
+                    if (!r.next()) {
+                        sendJson(exchange, 404, map("error", "Este match nao pertence ao musico selecionado."));
+                        return;
+                    }
+                }
+            }
+            try (CallableStatement call = connection.prepareCall("{CALL sp_converter_match_em_participacao(?, ?)}")) {
+                call.setInt(1, match);
+                call.setString(2, role);
+                call.execute();
+            }
+            sendJson(exchange, 200, map("ok", true, "message", "Match convertido em participação no grupo."));
+        } catch (SQLException error) {
+            routineError(exchange, error, "converter o match");
+        }
+    }
+
+    /**
+     * Botao "Sincronizar grupos" (Etapa 5, pessoa 5).
+     * Chama sp_sincronizar_situacao_grupos e devolve os dois contadores OUT.
+     */
+    private static void syncGroups(HttpExchange exchange) throws IOException {
+        if (postForm(exchange) == null) return;
+        try (Connection connection = ConnectionFactory.getConnection();
+             CallableStatement call = connection.prepareCall("{CALL sp_sincronizar_situacao_grupos(?, ?)}")) {
+            call.registerOutParameter(1, Types.INTEGER);
+            call.registerOutParameter(2, Types.INTEGER);
+            call.execute();
+            sendJson(exchange, 200, map("groups", call.getInt(1), "vacancies", call.getInt(2)));
+        } catch (SQLException error) {
+            routineError(exchange, error, "sincronizar os grupos");
+        }
+    }
+
+    /**
+     * Ultimas mudancas de situacao de match (tabela Log_Match, Etapa 5,
+     * pessoa 2). Devolve null se a tabela ainda nao existir no banco.
+     */
+    private static List<Map<String, Object>> matchLog(Connection c) throws SQLException {
+        try (PreparedStatement available = c.prepareStatement(
+                "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Log_Match'");
+             ResultSet r = available.executeQuery()) {
+            if (!r.next()) return null;
+        }
+        List<Map<String, Object>> rows = new ArrayList<>();
+        String sql = """
+            SELECT id_match, situacao_anterior, situacao_nova,
+                   DATE_FORMAT(data_hora, '%d/%m/%Y %H:%i'), usuario_banco
+              FROM Log_Match
+             ORDER BY data_hora DESC, id_log DESC
+             LIMIT 10
+            """;
+        try (PreparedStatement s = c.prepareStatement(sql); ResultSet r = s.executeQuery()) {
+            while (r.next()) rows.add(map("match", r.getObject(1), "from", r.getString(2),
+                    "to", r.getString(3), "when", r.getString(4), "who", r.getString(5)));
+        }
+        return rows;
+    }
+
+    /** Le um formulario POST pequeno, com a mesma protecao de origem do swipe. */
+    private static Map<String, String> postForm(HttpExchange exchange) throws IOException {
+        if (!"POST".equals(exchange.getRequestMethod())) {
+            sendJson(exchange, 405, map("error", "Metodo nao permitido."));
+            return null;
+        }
+        String origin = exchange.getRequestHeaders().getFirst("Origin");
+        if (origin != null && !origin.equals("http://127.0.0.1:" + PORT)) {
+            sendJson(exchange, 403, map("error", "Origem nao permitida."));
+            return null;
+        }
+        byte[] rawBody = exchange.getRequestBody().readNBytes(2049);
+        if (rawBody.length > 2048) {
+            sendJson(exchange, 413, map("error", "Requisicao muito grande."));
+            return null;
+        }
+        try {
+            return form(new String(rawBody, StandardCharsets.UTF_8));
+        } catch (IllegalArgumentException error) {
+            sendJson(exchange, 400, map("error", "Formulario invalido."));
+            return null;
+        }
+    }
+
+    /** Traduz os erros das rotinas da Etapa 5 em mensagens para a tela. */
+    private static void routineError(HttpExchange exchange, SQLException error, String action) throws IOException {
+        if ("45000".equals(error.getSQLState())) {
+            sendJson(exchange, 400, map("error", error.getMessage()));
+        } else if (error.getErrorCode() == 1305) {
+            sendJson(exchange, 501, map("error", "O procedimento da Etapa 5 nao esta instalado no banco."));
+        } else if (error.getErrorCode() == 1370) {
+            sendJson(exchange, 403, map("error", "O usuario do banco nao tem permissao EXECUTE (GRANT EXECUTE ON match_musical.*)."));
+        } else {
+            System.err.println("Falha ao " + action + ": " + error.getMessage());
+            sendJson(exchange, 503, map("error", "Nao foi possivel " + action + "."));
         }
     }
 
@@ -222,7 +352,8 @@ public final class WebMain {
         List<Map<String, Object>> rows = new ArrayList<>();
         String sql = "SELECT ma.id_match, ma.situacao, DATE_FORMAT(ma.data_criacao, '%d/%m/%Y'), " +
                 "CASE WHEN ma.id_usuario_a = ? THEN ma.id_usuario_b ELSE ma.id_usuario_a END AS outro, " +
-                "COALESCE(g.nome_grupo, mu.nome_artistico, mu.nome, u.nome_usuario) AS nome " +
+                "COALESCE(g.nome_grupo, mu.nome_artistico, mu.nome, u.nome_usuario) AS nome, " +
+                "g.id_usuario IS NOT NULL AS outro_e_grupo " +
                 "FROM " + MATCH_TABLE + " ma " +
                 "JOIN Usuario u ON u.id_usuario = CASE WHEN ma.id_usuario_a = ? THEN ma.id_usuario_b ELSE ma.id_usuario_a END " +
                 "LEFT JOIN Grupo_Musical g ON g.id_usuario = u.id_usuario " +
@@ -232,7 +363,8 @@ public final class WebMain {
             s.setInt(1, user); s.setInt(2, user); s.setInt(3, user); s.setInt(4, user);
             try (ResultSet r = s.executeQuery()) {
                 while (r.next()) rows.add(map("id", r.getInt(1), "status", r.getString(2),
-                        "created", r.getString(3), "otherId", r.getInt(4), "name", r.getString(5)));
+                        "created", r.getString(3), "otherId", r.getInt(4), "name", r.getString(5),
+                        "otherIsGroup", r.getBoolean(6)));
             }
         }
         return rows;

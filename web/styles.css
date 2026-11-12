@@ -7,3 +7,5 @@
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 /* Etapa 6: compatibilidade da vaga (fn_compatibilidade_vaga) */
 .vacancy-badges span.compat-ok{background:#1f8a5b33;color:#7be0a9}.vacancy-badges span.compat-low{background:#d9822b33;color:#f5b971}
+/* Etapa 6: converter match, sincronizar grupos e log */
+.convert-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.convert-role{flex:1 1 200px;min-width:0;background:#ffffff10;border:1px solid #ffffff24;color:inherit;border-radius:8px;padding:8px 10px;font:inherit}.log-table{width:100%;border-collapse:collapse;font-size:13px}.log-table th,.log-table td{text-align:left;padding:8px 10px;border-bottom:1px solid #ffffff14}.log-table th{color:#d8d1dc;font-weight:600}.log-note{color:#d8d1dc}@media (max-width:640px){.log-table{display:block;overflow-x:auto}}

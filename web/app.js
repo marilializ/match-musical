@@ -66,11 +66,19 @@ function renderDiscover() {
 }
 function renderVacancies() {
   const rows=state.data.vacancies.filter(v=>(v.title+' '+v.group+' '+v.city).toLocaleLowerCase('pt-BR').includes(state.search.toLocaleLowerCase('pt-BR')));
-  return '<div class="page-intro"><span class="eyebrow">ENCONTRE SEU PRÓXIMO PALCO</span><h1>Vagas abertas.</h1><p>Bandas, corais e orquestras estão procurando alguém como você. Explore as oportunidades e conheça os grupos.</p></div><div class="filter-row"><label class="searchbox" style="margin-left:0;width:min(100%,360px)">' + ICON('search') + '<input id="vacancy-search" type="search" placeholder="Buscar função, grupo ou cidade" value="' + esc(state.search) + '" aria-label="Buscar vagas"></label></div>' + (rows.length ? '<div class="vacancy-list">' + rows.map(vacancyCard).join('') + '</div>' : empty('Nenhuma vaga encontrada','Tente buscar outro instrumento, grupo ou cidade.'));
+  return '<div class="page-intro"><span class="eyebrow">ENCONTRE SEU PRÓXIMO PALCO</span><h1>Vagas abertas.</h1><p>Bandas, corais e orquestras estão procurando alguém como você. Explore as oportunidades e conheça os grupos.</p></div><div class="filter-row"><label class="searchbox" style="margin-left:0;width:min(100%,360px)">' + ICON('search') + '<input id="vacancy-search" type="search" placeholder="Buscar função, grupo ou cidade" value="' + esc(state.search) + '" aria-label="Buscar vagas"></label><button class="btn btn-outline" data-sync-groups title="Acerta a situação dos grupos e fecha vagas de grupos completos">Sincronizar grupos</button></div>' + (rows.length ? '<div class="vacancy-list">' + rows.map(vacancyCard).join('') + '</div>' : empty('Nenhuma vaga encontrada','Tente buscar outro instrumento, grupo ou cidade.'));
 }
 function renderMatches() {
   const rows=state.data.matches;
-  return '<div class="page-intro"><span class="eyebrow">CONEXÕES QUE FAZEM SENTIDO</span><h1>Seus matches.</h1><p>Quando o interesse é mútuo, a conversa pode começar. Aqui estão suas conexões registradas no banco.</p></div>' + (rows.length ? '<div class="match-list">' + rows.map(m=>'<article class="match-card"><div class="mini-cover" style="' + styleColor(m.otherId) + '">' + esc(initials(m.name)) + '</div><div class="match-main"><h3>' + esc(m.name) + '</h3><p>Conexão ' + esc(m.status.toLowerCase()) + '</p></div><span class="match-time">' + esc(m.created || '') + '</span></article>').join('') + '</div>' : empty('Ainda não há matches','Explore os grupos e mostre seu interesse para começar.','<a class="btn btn-pink" href="#descobrir">Descobrir grupos</a>'));
+  return '<div class="page-intro"><span class="eyebrow">CONEXÕES QUE FAZEM SENTIDO</span><h1>Seus matches.</h1><p>Quando o interesse é mútuo, a conversa pode começar. Aqui estão suas conexões registradas no banco.</p></div>' + (rows.length ? '<div class="match-list">' + rows.map(m=>'<article class="match-card"><div class="mini-cover" style="' + styleColor(m.otherId) + '">' + esc(initials(m.name)) + '</div><div class="match-main"><h3>' + esc(m.name) + '</h3><p>Conexão ' + esc(m.status.toLowerCase()) + '</p>' + (m.status==='Ativo' && m.otherIsGroup ? '<div class="convert-row"><input class="convert-role" id="role-' + Number(m.id) + '" maxlength="100" placeholder="Sua função no grupo (ex.: Guitarrista)" aria-label="Sua função no grupo"><button class="btn btn-outline" data-convert="' + Number(m.id) + '">Converter em participação</button></div>' : '') + '</div><span class="match-time">' + esc(m.created || '') + '</span></article>').join('') + '</div>' : empty('Ainda não há matches','Explore os grupos e mostre seu interesse para começar.','<a class="btn btn-pink" href="#descobrir">Descobrir grupos</a>')) + renderMatchLog();
+}
+function renderMatchLog() {
+  const log=state.data.matchLog;
+  if(log===undefined) return '';
+  const body=log===null ? '<p class="log-note">A tabela de log da Etapa 5 (Log_Match) ainda não está instalada no banco.</p>'
+    : log.length ? '<table class="log-table"><thead><tr><th>Match</th><th>De</th><th>Para</th><th>Quando</th><th>Usuário do banco</th></tr></thead><tbody>' + log.map(l=>'<tr><td>#' + esc(l.match ?? '—') + '</td><td>' + esc(l.from) + '</td><td>' + esc(l.to) + '</td><td>' + esc(l.when) + '</td><td>' + esc(l.who) + '</td></tr>').join('') + '</tbody></table>'
+    : '<p class="log-note">Nenhuma mudança de situação registrada ainda.</p>';
+  return '<section class="section"><div class="page-intro"><span class="eyebrow">AUDITORIA</span><h2>Histórico de matches</h2><p>Gravado automaticamente pelo trigger a cada mudança de situação de um match.</p></div>' + body + '</section>';
 }
 function renderProfile() {
   const m=me() || {name:'Seu perfil'};
@@ -121,6 +129,29 @@ async function swipe(decision) {
   } catch(error) { toast(error.message); }
   finally {state.busy=false;render();}
 }
+async function postAction(url, params) {
+  if(state.demo) throw Error('Disponível só com a interface conectada ao banco.');
+  const res=await fetch(url,{method:'POST',body:new URLSearchParams(params)});
+  const payload=await res.json().catch(()=>({}));
+  if(!res.ok) throw Error(payload.error || 'Não foi possível concluir a ação.');
+  return payload;
+}
+async function convertMatch(id) {
+  if(state.busy) return;
+  const role=(document.getElementById('role-' + id)?.value || '').trim();
+  if(!role) { toast('Informe a sua função no grupo.'); return; }
+  state.busy=true;
+  try { const r=await postAction('/api/matches/convert',{user:String(state.userId),match:String(id),role}); toast(r.message || 'Match convertido!'); await load(); }
+  catch(error) { toast(error.message); }
+  finally { state.busy=false; }
+}
+async function syncGroups() {
+  if(state.busy) return;
+  state.busy=true;
+  try { const r=await postAction('/api/groups/sync',{}); toast(Number(r.groups) + ' grupo(s) atualizado(s), ' + Number(r.vacancies) + ' vaga(s) fechada(s).'); await load(); }
+  catch(error) { toast(error.message); }
+  finally { state.busy=false; }
+}
 document.addEventListener('click',event=>{
   const b=event.target.closest('button'); if(!b) return;
   if(b.dataset.filter){state.filter=b.dataset.filter;state.groupIndex=0;render();}
@@ -128,6 +159,8 @@ document.addEventListener('click',event=>{
   if(b.hasAttribute('data-reset-filter')){state.filter='Todos';state.search='';state.groupIndex=0;render();}
   if(b.dataset.openGroup){const index=state.data.groups.findIndex(g=>Number(g.id)===Number(b.dataset.openGroup));if(index>=0){state.filter='Todos';state.search='';state.groupIndex=index;location.hash='descobrir';render();}}
   if(b.dataset.swipe) swipe(b.dataset.swipe);
+  if(b.dataset.convert) convertMatch(Number(b.dataset.convert));
+  if(b.hasAttribute('data-sync-groups')) syncGroups();
 });
 document.addEventListener('input',event=>{
   if(event.target.id==='group-search'||event.target.id==='vacancy-search'){

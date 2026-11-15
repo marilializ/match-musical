@@ -29,7 +29,12 @@ const demo = {
   ],
   stats:{groups:30,vacancies:20,matches:2,rate:66.67}
 };
-const state = {data:null,demo:false,userId:Number(localStorage.getItem('sync-user') || 1),filter:'Todos',search:'',groupIndex:0,busy:false,rec:null,recFilter:{funcao:'',nivel:''},members:{},newMatchId:null,log:null,logFilter:{match:'',situacao:''}};
+const state = {data:null,demo:false,userId:Number(localStorage.getItem('sync-user') || 1),filter:'Todos',search:'',groupIndex:0,busy:false,rec:null,recFilter:{funcao:'',nivel:''},members:{},newMatchId:null,log:null,logFilter:{match:'',situacao:''},limit:{rec:3,vac:6}};
+const LIMIT_STEP = {rec:3,vac:6};
+const resetLimits = () => { state.limit={...LIMIT_STEP}; };
+// Mostra so os primeiros itens da lista e um botao para carregar mais.
+const limited = (kind, rows, card, noun) => { const shown=rows.slice(0,state.limit[kind]), rest=rows.length-shown.length;
+  return '<div class="vacancy-list">' + shown.map(card).join('') + '</div>' + (rest>0 ? '<div class="more-row"><button class="btn btn-outline" data-more="' + kind + '">Ver mais ' + noun + ' (' + rest + ')</button></div>' : ''); };
 const MATCH_STATUS = ['Ativo','Encerrado','Convertido','Pendente'];
 const LEVEL_LABEL = {Iniciante:'Iniciante',Basico:'Básico',Intermediario:'Intermediário',Avancado:'Avançado',Profissional:'Profissional'};
 const levelLabel = (v) => LEVEL_LABEL[v] || v;
@@ -60,8 +65,8 @@ function renderRecommended() {
   else if(!r || r.loading) body='<p class="log-note">Carregando recomendações…</p>';
   else if(r.error) body='<p class="log-note">' + esc(r.error) + '</p>';
   else body='<div class="stats-row"><div class="stat"><span class="kicker">Compatíveis</span><strong>' + Number(r.indicator.compatible) + ' de ' + Number(r.indicator.open) + '</strong><small>vagas abertas no seu nível</small></div><div class="stat"><span class="kicker">Recomendadas</span><strong>' + Number(r.indicator.recommended) + '</strong><small>nível e gênero em comum</small></div><div class="stat"><span class="kicker">Neste filtro</span><strong>' + r.rows.length + '</strong><small>vaga(s) listada(s)</small></div></div>' +
-    (r.rows.length ? '<div class="vacancy-list">' + r.rows.map(recCard).join('') + '</div>' : empty('Nenhuma recomendação','Nenhuma vaga recomendada com esses filtros.'));
-  return '<section class="section"><div class="page-intro"><span class="eyebrow">SELECIONADAS PARA O SEU PERFIL</span><h2>Recomendadas para você</h2><p>Vagas abertas com gênero em comum e nível compatível com o seu perfil.</p></div>' + form + body + '</section>';
+    (r.rows.length ? limited('rec', r.rows, recCard, 'recomendadas') : empty('Nenhuma recomendação','Nenhuma vaga recomendada com esses filtros.'));
+  return '<section class="section"><div class="section-head"><div><span class="eyebrow">SELECIONADAS PARA O SEU PERFIL</span><h2>Recomendadas para você</h2></div></div><p class="log-note">Vagas abertas com gênero em comum e nível compatível com o seu perfil.</p>' + form + body + '</section>';
 }
 async function loadRecommended() {
   if(state.demo) return;
@@ -119,7 +124,11 @@ function renderDiscover() {
 }
 function renderVacancies() {
   const rows=state.data.vacancies.filter(v=>(v.title+' '+v.group+' '+v.city).toLocaleLowerCase('pt-BR').includes(state.search.toLocaleLowerCase('pt-BR')));
-  return '<div class="page-intro"><span class="eyebrow">ENCONTRE SEU PRÓXIMO PALCO</span><h1>Vagas abertas.</h1><p>Bandas, corais e orquestras estão procurando alguém como você. Explore as oportunidades e conheça os grupos.</p></div><div class="filter-row"><label class="searchbox" style="margin-left:0;width:min(100%,360px)">' + ICON('search') + '<input id="vacancy-search" type="search" placeholder="Buscar função, grupo ou cidade" value="' + esc(state.search) + '" aria-label="Buscar vagas"></label><button class="btn btn-outline" data-sync-groups title="Acerta a situação dos grupos e fecha vagas de grupos completos">Sincronizar grupos</button></div>' + (state.data.objects && state.data.objects.fn_compatibilidade_vaga === false ? '<p class="log-note">A compatibilidade com o seu nível está indisponível no momento.</p>' : '') + (rows.length ? '<div class="vacancy-list">' + rows.map(vacancyCard).join('') + '</div>' : empty('Nenhuma vaga encontrada','Tente buscar outro instrumento, grupo ou cidade.')) + renderRecommended();
+  const all='<section class="section all-vacancies"><div class="section-head"><div><span class="eyebrow">TODAS AS OPORTUNIDADES</span><h2>Todas as vagas abertas</h2></div><button class="btn btn-outline" data-sync-groups title="Acerta a situação dos grupos e fecha vagas de grupos completos">Sincronizar grupos</button></div>' +
+    '<div class="filter-row"><label class="searchbox" style="margin-left:0;width:min(100%,360px)">' + ICON('search') + '<input id="vacancy-search" type="search" placeholder="Buscar função, grupo ou cidade" value="' + esc(state.search) + '" aria-label="Buscar vagas"></label></div>' +
+    (state.data.objects && state.data.objects.fn_compatibilidade_vaga === false ? '<p class="log-note">A compatibilidade com o seu nível está indisponível no momento.</p>' : '') +
+    (rows.length ? limited('vac', rows, vacancyCard, 'vagas') : empty('Nenhuma vaga encontrada','Tente buscar outro instrumento, grupo ou cidade.')) + '</section>';
+  return '<div class="page-intro"><span class="eyebrow">ENCONTRE SEU PRÓXIMO PALCO</span><h1>Vagas abertas.</h1><p>Bandas, corais e orquestras estão procurando alguém como você. Comece pelas que combinam com o seu perfil.</p></div>' + renderRecommended() + all;
 }
 function renderMatches() {
   const rows=state.data.matches;
@@ -251,16 +260,18 @@ document.addEventListener('click',event=>{
   if(b.dataset.swipe) swipe(b.dataset.swipe);
   if(b.dataset.convert) convertMatch(Number(b.dataset.convert));
   if(b.hasAttribute('data-sync-groups')) syncGroups();
+  if(b.dataset.more){state.limit[b.dataset.more]+=LIMIT_STEP[b.dataset.more];render();}
 });
 document.addEventListener('submit',event=>{
   if(!event.target.matches('[data-rec-form]')) return;
   event.preventDefault();
+  state.limit.rec=LIMIT_STEP.rec;
   state.recFilter={funcao:(document.getElementById('rec-role')?.value || '').trim(),nivel:document.getElementById('rec-level')?.value || ''};
   loadRecommended(); render();
 });
 document.addEventListener('input',event=>{
   if(event.target.id==='group-search'||event.target.id==='vacancy-search'){
-    const el=event.target, pos=el.selectionStart; state.search=el.value;state.groupIndex=0;render();
+    const el=event.target, pos=el.selectionStart; state.search=el.value;state.groupIndex=0;state.limit.vac=LIMIT_STEP.vac;render();
     const next=document.getElementById(el.id);if(next){next.focus();next.setSelectionRange(pos,pos);}
   }
 });
@@ -269,6 +280,6 @@ document.addEventListener('change',event=>{
   state.logFilter={match:document.getElementById('log-match')?.value || '',situacao:document.getElementById('log-status')?.value || ''};
   loadLog(); render();
 });
-document.getElementById('user-select').addEventListener('change',event=>{state.userId=Number(event.target.value);localStorage.setItem('sync-user',String(state.userId));state.groupIndex=0;load();});
-window.addEventListener('hashchange',()=>{state.search='';render();window.scrollTo({top:0,behavior:'smooth'});});
+document.getElementById('user-select').addEventListener('change',event=>{state.userId=Number(event.target.value);localStorage.setItem('sync-user',String(state.userId));state.groupIndex=0;resetLimits();load();});
+window.addEventListener('hashchange',()=>{state.search='';resetLimits();render();window.scrollTo({top:0,behavior:'smooth'});});
 load();

@@ -27,6 +27,8 @@ public final class WebMain {
     private static final Path WEB_ROOT = Path.of(System.getProperty("sync.web.dir", "web")).toAbsolutePath().normalize();
     private static final int PORT = Integer.parseInt(System.getenv().getOrDefault("SYNC_WEB_PORT", "8080"));
     private static final ViewsFuncoesDAO VIEWS_FUNCOES = new ViewsFuncoesDAO();
+    private static final ProcedimentosTriggersDAO PROCEDIMENTOS_TRIGGERS = new ProcedimentosTriggersDAO();
+    private static final List<String> SITUACOES_MATCH = List.of("Ativo", "Encerrado", "Convertido", "Pendente");
     private static final List<String> NIVEIS =
             List.of("Iniciante", "Basico", "Intermediario", "Avancado", "Profissional");
 
@@ -45,6 +47,7 @@ public final class WebMain {
         server.createContext("/api/groups/sync", WebMain::syncGroups);
         server.createContext("/api/vacancies/recommended", WebMain::recommendedVacancies);
         server.createContext("/api/groups/members", WebMain::groupMembers);
+        server.createContext("/api/matches/log", WebMain::matchLogFiltered);
         server.createContext("/", WebMain::staticFile);
         server.setExecutor(Executors.newFixedThreadPool(4));
         server.start();
@@ -54,7 +57,7 @@ public final class WebMain {
 
     private static void bootstrap(HttpExchange exchange) throws IOException {
         if (!"GET".equals(exchange.getRequestMethod())) {
-            sendJson(exchange, 405, map("error", "Metodo nao permitido."));
+            sendJson(exchange, 405, map("error", "Método não permitido."));
             return;
         }
         try (Connection connection = ConnectionFactory.getConnection()) {
@@ -82,30 +85,30 @@ public final class WebMain {
             sendJson(exchange, 200, body);
         } catch (SQLException error) {
             System.err.println("Falha ao carregar interface web: " + error.getMessage());
-            sendJson(exchange, 503, map("error", "Banco de dados indisponivel. Confira a conexao SYNC_DB_* e o seed."));
+            sendJson(exchange, 503, map("error", "Banco de dados indisponível. Confira a conexão SYNC_DB_* e o seed."));
         }
     }
 
     private static void swipe(HttpExchange exchange) throws IOException {
         if (!"POST".equals(exchange.getRequestMethod())) {
-            sendJson(exchange, 405, map("error", "Metodo nao permitido."));
+            sendJson(exchange, 405, map("error", "Método não permitido."));
             return;
         }
         String origin = exchange.getRequestHeaders().getFirst("Origin");
         if (origin != null && !origin.equals("http://127.0.0.1:" + PORT)) {
-            sendJson(exchange, 403, map("error", "Origem nao permitida."));
+            sendJson(exchange, 403, map("error", "Origem não permitida."));
             return;
         }
         byte[] rawBody = exchange.getRequestBody().readNBytes(2049);
         if (rawBody.length > 2048) {
-            sendJson(exchange, 413, map("error", "Requisicao muito grande."));
+            sendJson(exchange, 413, map("error", "Requisição muito grande."));
             return;
         }
         Map<String, String> form;
         try {
             form = form(new String(rawBody, StandardCharsets.UTF_8));
         } catch (IllegalArgumentException error) {
-            sendJson(exchange, 400, map("error", "Formulario invalido."));
+            sendJson(exchange, 400, map("error", "Formulário inválido."));
             return;
         }
         int user = integer(form.get("user"), 0);
@@ -113,7 +116,7 @@ public final class WebMain {
         String decision = form.getOrDefault("decision", "");
         if (user <= 0 || target <= 0 || user == target ||
                 !(decision.equals("Like") || decision.equals("Super Like") || decision.equals("Dislike"))) {
-            sendJson(exchange, 400, map("error", "Swipe invalido."));
+            sendJson(exchange, 400, map("error", "Swipe inválido."));
             return;
         }
         try (Connection connection = ConnectionFactory.getConnection()) {
@@ -123,7 +126,7 @@ public final class WebMain {
                 if (!exists(connection, "SELECT 1 FROM Musico WHERE id_usuario = ? FOR UPDATE", user) ||
                     !exists(connection, "SELECT 1 FROM Grupo_Musical WHERE id_usuario = ? AND situacao = 'Ativo'", target)) {
                     connection.rollback();
-                    sendJson(exchange, 404, map("error", "Musico nao encontrado ou grupo inativo."));
+                    sendJson(exchange, 404, map("error", "Músico não encontrado ou grupo inativo."));
                     return;
                 }
                 try (PreparedStatement check = connection.prepareStatement(
@@ -133,11 +136,15 @@ public final class WebMain {
                     try (ResultSet rows = check.executeQuery()) {
                         if (rows.next()) {
                             connection.rollback();
-                            sendJson(exchange, 409, map("error", "Voce ja avaliou este grupo."));
+                            sendJson(exchange, 409, map("error", "Você já avaliou este grupo."));
                             return;
                         }
                     }
                 }
+                // Etapa 6, tarefa 5: o tr_swipe_cria_match cria o Match no like
+                // mutuo. Comparar o match do par antes e depois do INSERT, na
+                // mesma transacao, mostra se foi este swipe que o criou.
+                Integer matchBefore = PROCEDIMENTOS_TRIGGERS.matchDoPar(connection, user, target);
                 try (PreparedStatement insert = connection.prepareStatement(
                         "INSERT INTO Swipe (tipo_decisao, id_usuario_realizou, id_usuario_encontrado) VALUES (?, ?, ?)")) {
                     insert.setString(1, decision);
@@ -145,15 +152,28 @@ public final class WebMain {
                     insert.setInt(3, target);
                     insert.executeUpdate();
                 }
+                Integer matchAfter = PROCEDIMENTOS_TRIGGERS.matchDoPar(connection, user, target);
                 connection.commit();
-                sendJson(exchange, 201, map("ok", true));
+                boolean matched = matchBefore == null && matchAfter != null;
+                sendJson(exchange, 201, map("ok", true, "matched", matched, "matchId", matched ? matchAfter : null));
             } catch (SQLException error) {
                 connection.rollback();
                 throw error;
             }
         } catch (SQLException error) {
+            swipeError(exchange, error);
+        }
+    }
+
+    /** Erros de integridade do swipe viram mensagem clara, sem a pilha. */
+    private static void swipeError(HttpExchange exchange, SQLException error) throws IOException {
+        if ("23000".equals(error.getSQLState())) {
+            sendJson(exchange, 409, map("error", "Não foi possível registrar o swipe: usuário inexistente ou avaliação repetida."));
+        } else if (error.getErrorCode() == 3819) {
+            sendJson(exchange, 400, map("error", "Decisão de swipe inválida."));
+        } else {
             System.err.println("Falha ao registrar swipe: " + error.getMessage());
-            sendJson(exchange, 503, map("error", "Nao foi possivel registrar o swipe."));
+            sendJson(exchange, 503, map("error", "Não foi possível registrar o swipe."));
         }
     }
 
@@ -172,11 +192,11 @@ public final class WebMain {
         int match = integer(form.get("match"), 0);
         String role = form.getOrDefault("role", "").trim();
         if (user <= 0 || match <= 0) {
-            sendJson(exchange, 400, map("error", "Match invalido."));
+            sendJson(exchange, 400, map("error", "Match inválido."));
             return;
         }
         if (role.isEmpty() || role.length() > 100) {
-            sendJson(exchange, 400, map("error", "Informe a sua funcao no grupo (ate 100 caracteres)."));
+            sendJson(exchange, 400, map("error", "Informe a sua função no grupo (até 100 caracteres)."));
             return;
         }
         try (Connection connection = ConnectionFactory.getConnection()) {
@@ -186,7 +206,7 @@ public final class WebMain {
                 own.setInt(1, match); own.setInt(2, user); own.setInt(3, user);
                 try (ResultSet r = own.executeQuery()) {
                     if (!r.next()) {
-                        sendJson(exchange, 404, map("error", "Este match nao pertence ao musico selecionado."));
+                        sendJson(exchange, 404, map("error", "Este match não pertence ao músico selecionado."));
                         return;
                     }
                 }
@@ -226,29 +246,29 @@ public final class WebMain {
      */
     private static void recommendedVacancies(HttpExchange exchange) throws IOException {
         if (!"GET".equals(exchange.getRequestMethod())) {
-            sendJson(exchange, 405, map("error", "Metodo nao permitido."));
+            sendJson(exchange, 405, map("error", "Método não permitido."));
             return;
         }
         Map<String, String> query;
         try {
             query = form(exchange.getRequestURI().getRawQuery());
         } catch (IllegalArgumentException error) {
-            sendJson(exchange, 400, map("error", "Filtro invalido."));
+            sendJson(exchange, 400, map("error", "Filtro inválido."));
             return;
         }
         int user = integer(query.get("user"), 0);
         String role = blankToNull(query.get("funcao"));
         String level = blankToNull(query.get("nivel"));
         if (user <= 0) {
-            sendJson(exchange, 400, map("error", "Escolha um musico."));
+            sendJson(exchange, 400, map("error", "Escolha um músico."));
             return;
         }
         if (role != null && role.length() > 100) {
-            sendJson(exchange, 400, map("error", "A funcao pode ter ate 100 caracteres."));
+            sendJson(exchange, 400, map("error", "A função pode ter até 100 caracteres."));
             return;
         }
         if (level != null && !NIVEIS.contains(level)) {
-            sendJson(exchange, 400, map("error", "Nivel minimo invalido."));
+            sendJson(exchange, 400, map("error", "Nível mínimo inválido."));
             return;
         }
         try {
@@ -272,7 +292,7 @@ public final class WebMain {
     /** Integrantes ativos de um grupo (view vw_integrantes_grupo, Etapa 4). */
     private static void groupMembers(HttpExchange exchange) throws IOException {
         if (!"GET".equals(exchange.getRequestMethod())) {
-            sendJson(exchange, 405, map("error", "Metodo nao permitido."));
+            sendJson(exchange, 405, map("error", "Método não permitido."));
             return;
         }
         int group;
@@ -282,7 +302,7 @@ public final class WebMain {
             group = 0;
         }
         if (group <= 0) {
-            sendJson(exchange, 400, map("error", "Grupo invalido."));
+            sendJson(exchange, 400, map("error", "Grupo inválido."));
             return;
         }
         try {
@@ -296,15 +316,61 @@ public final class WebMain {
         }
     }
 
+    /**
+     * Historico de mudancas de situacao de match com filtros (Etapa 6,
+     * tarefa 5): efeito do trigger tr_match_log_situacao, so dos matches
+     * do usuario. Parametros: user (obrigatorio), match (id) e situacao
+     * (nova), opcionais.
+     */
+    private static void matchLogFiltered(HttpExchange exchange) throws IOException {
+        if (!"GET".equals(exchange.getRequestMethod())) {
+            sendJson(exchange, 405, map("error", "Método não permitido."));
+            return;
+        }
+        Map<String, String> query;
+        try {
+            query = form(exchange.getRequestURI().getRawQuery());
+        } catch (IllegalArgumentException error) {
+            sendJson(exchange, 400, map("error", "Filtro inválido."));
+            return;
+        }
+        int user = integer(query.get("user"), 0);
+        String matchText = blankToNull(query.get("match"));
+        String status = blankToNull(query.get("situacao"));
+        Integer match = matchText == null ? null : integer(matchText, 0);
+        if (user <= 0) {
+            sendJson(exchange, 400, map("error", "Escolha um músico."));
+            return;
+        }
+        if (match != null && match <= 0) {
+            sendJson(exchange, 400, map("error", "Conexão inválida."));
+            return;
+        }
+        if (status != null && !SITUACOES_MATCH.contains(status)) {
+            sendJson(exchange, 400, map("error", "Situação inválida."));
+            return;
+        }
+        try {
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (ProcedimentosTriggersDAO.LinhaLog l : PROCEDIMENTOS_TRIGGERS.logFiltrado(user, match, status)) {
+                rows.add(map("match", l.idMatch(), "from", l.situacaoAnterior(), "to", l.situacaoNova(),
+                        "when", l.quando()));
+            }
+            sendJson(exchange, 200, map("rows", rows));
+        } catch (SQLException error) {
+            objectError(exchange, error, "carregar o histórico");
+        }
+    }
+
     /** Traduz a falta de view (1146) ou funcao (1305) em aviso para a secao. */
     private static void objectError(HttpExchange exchange, SQLException error, String action) throws IOException {
         if (error.getErrorCode() == 1146 || error.getErrorCode() == 1305) {
-            sendJson(exchange, 501, map("error", "Este recurso esta indisponivel no banco no momento."));
+            sendJson(exchange, 501, map("error", "Este recurso está indisponível no banco no momento."));
         } else if (error.getErrorCode() == 1370) {
-            sendJson(exchange, 403, map("error", "O usuario do banco nao tem permissao para esta acao."));
+            sendJson(exchange, 403, map("error", "O usuário do banco não tem permissão para esta ação."));
         } else {
             System.err.println("Falha ao " + action + ": " + error.getMessage());
-            sendJson(exchange, 503, map("error", "Nao foi possivel " + action + "."));
+            sendJson(exchange, 503, map("error", "Não foi possível " + action + "."));
         }
     }
 
@@ -340,23 +406,23 @@ public final class WebMain {
     /** Le um formulario POST pequeno, com a mesma protecao de origem do swipe. */
     private static Map<String, String> postForm(HttpExchange exchange) throws IOException {
         if (!"POST".equals(exchange.getRequestMethod())) {
-            sendJson(exchange, 405, map("error", "Metodo nao permitido."));
+            sendJson(exchange, 405, map("error", "Método não permitido."));
             return null;
         }
         String origin = exchange.getRequestHeaders().getFirst("Origin");
         if (origin != null && !origin.equals("http://127.0.0.1:" + PORT)) {
-            sendJson(exchange, 403, map("error", "Origem nao permitida."));
+            sendJson(exchange, 403, map("error", "Origem não permitida."));
             return null;
         }
         byte[] rawBody = exchange.getRequestBody().readNBytes(2049);
         if (rawBody.length > 2048) {
-            sendJson(exchange, 413, map("error", "Requisicao muito grande."));
+            sendJson(exchange, 413, map("error", "Requisição muito grande."));
             return null;
         }
         try {
             return form(new String(rawBody, StandardCharsets.UTF_8));
         } catch (IllegalArgumentException error) {
-            sendJson(exchange, 400, map("error", "Formulario invalido."));
+            sendJson(exchange, 400, map("error", "Formulário inválido."));
             return null;
         }
     }
@@ -366,12 +432,12 @@ public final class WebMain {
         if ("45000".equals(error.getSQLState())) {
             sendJson(exchange, 400, map("error", error.getMessage()));
         } else if (error.getErrorCode() == 1305) {
-            sendJson(exchange, 501, map("error", "Esta acao esta indisponivel no banco no momento."));
+            sendJson(exchange, 501, map("error", "Esta ação está indisponível no banco no momento."));
         } else if (error.getErrorCode() == 1370) {
-            sendJson(exchange, 403, map("error", "O usuario do banco nao tem permissao para esta acao."));
+            sendJson(exchange, 403, map("error", "O usuário do banco não tem permissão para esta ação."));
         } else {
             System.err.println("Falha ao " + action + ": " + error.getMessage());
-            sendJson(exchange, 503, map("error", "Nao foi possivel " + action + "."));
+            sendJson(exchange, 503, map("error", "Não foi possível " + action + "."));
         }
     }
 

@@ -29,7 +29,13 @@ const demo = {
   ],
   stats:{groups:30,vacancies:20,matches:2,rate:66.67}
 };
-const state = {data:null,demo:false,userId:Number(localStorage.getItem('sync-user') || 1),filter:'Todos',search:'',groupIndex:0,busy:false,rec:null,recFilter:{funcao:'',nivel:''},members:{}};
+const state = {data:null,demo:false,userId:Number(localStorage.getItem('sync-user') || 1),filter:'Todos',search:'',groupIndex:0,busy:false,rec:null,recFilter:{funcao:'',nivel:''},members:{},newMatchId:null,log:null,logFilter:{match:'',situacao:''}};
+const MATCH_STATUS = ['Ativo','Encerrado','Convertido','Pendente'];
+const LEVEL_LABEL = {Iniciante:'Iniciante',Basico:'Básico',Intermediario:'Intermediário',Avancado:'Avançado',Profissional:'Profissional'};
+const levelLabel = (v) => LEVEL_LABEL[v] || v;
+// 'Conexão' é feminino: a situação do match concorda com ela no card
+const STATUS_LABEL = {Ativo:'Ativa',Encerrado:'Encerrada',Convertido:'Convertida',Pendente:'Pendente'};
+const statusPill = s => '<span class="status-pill st-' + esc(String(s).toLowerCase()) + '">' + esc(STATUS_LABEL[s] || s) + '</span>';
 const LEVELS = ['Iniciante','Basico','Intermediario','Avancado','Profissional'];
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const initials = (s) => String(s || 'S').trim().split(/\s+/).slice(0,2).map(w => w[0] || '').join('').toUpperCase();
@@ -42,13 +48,13 @@ function toast(message) { const el=document.getElementById('toast'); el.textCont
 function empty(title, text, action) { return '<div class="empty">' + ICON('music') + '<h3>' + esc(title) + '</h3><p>' + esc(text) + '</p>' + (action || '') + '</div>'; }
 function sectionHead(kicker,title,href,label) { return '<div class="section-head"><div><div class="eyebrow">' + kicker + '</div><h2>' + title + '</h2></div>' + (href ? iconLink(label,href) : '') + '</div>'; }
 function groupCard(g) { return '<article class="group-card"><div class="cover" style="' + styleColor(g.id) + '"><span class="cover-tag">' + esc(g.type || 'Grupo') + '</span><span class="cover-initial">' + esc(initials(g.name)) + '</span></div><div class="card-body"><h3>' + esc(g.name) + '</h3><p>' + esc(g.genres || 'Música sem fronteiras') + '</p><div class="card-meta">' + ICON('pin') + esc(g.city || 'Local não informado') + '</div><div class="card-actions"><button class="btn btn-outline" data-open-group="' + Number(g.id) + '">Ver perfil ' + ICON('arrow') + '</button></div></div></article>'; }
-function vacancyCard(v) { return '<article class="vacancy-card"><div class="mini-cover" style="' + styleColor(v.groupId) + '">' + esc(initials(v.group)) + '</div><div class="vacancy-main"><h3>' + esc(v.title || 'Oportunidade musical') + '</h3><p>' + esc(v.group) + ' · ' + esc(v.city) + '</p><div class="vacancy-badges"><span>' + esc(v.level || 'Nível livre') + '</span><span>Vaga aberta</span>' + (v.compatibility ? '<span class="compat ' + (v.compatibility === 'Compatível' ? 'compat-ok' : 'compat-low') + '" title="Compatibilidade com o seu nível">' + esc(v.compatibility) + '</span>' : '') + '</div></div><button class="btn btn-outline" data-open-group="' + Number(v.groupId) + '">Ver grupo</button></article>'; }
+function vacancyCard(v) { return '<article class="vacancy-card"><div class="mini-cover" style="' + styleColor(v.groupId) + '">' + esc(initials(v.group)) + '</div><div class="vacancy-main"><h3>' + esc(v.title || 'Oportunidade musical') + '</h3><p>' + esc(v.group) + ' · ' + esc(v.city) + '</p><div class="vacancy-badges"><span>' + esc(v.level ? levelLabel(v.level) : 'Nível livre') + '</span><span>Vaga aberta</span>' + (v.compatibility ? '<span class="compat ' + (v.compatibility === 'Compatível' ? 'compat-ok' : 'compat-low') + '" title="Compatibilidade com o seu nível">' + esc(v.compatibility) + '</span>' : '') + '</div></div><button class="btn btn-outline" data-open-group="' + Number(v.groupId) + '">Ver grupo</button></article>'; }
 // Etapa 6, tarefa 4: vagas recomendadas (vw_recomendacao_vagas + fn_compatibilidade_vaga)
 const recKey = () => state.userId + '|' + state.recFilter.funcao + '|' + state.recFilter.nivel;
-function recCard(v) { return '<article class="vacancy-card"><div class="mini-cover" style="' + styleColor(v.groupId) + '">' + esc(initials(v.group)) + '</div><div class="vacancy-main"><h3>' + esc(v.title || 'Oportunidade musical') + '</h3><p>' + esc(v.group) + ' · ' + esc(v.city) + '</p><div class="vacancy-badges"><span>' + esc(v.level || 'Nível livre') + '</span><span title="Gêneros em comum com o seu perfil">' + Number(v.sharedGenres) + ' gênero(s) em comum: ' + esc(v.genres) + '</span>' + (v.compatibility ? '<span class="compat ' + (v.compatibility === 'Compatível' ? 'compat-ok' : 'compat-low') + '" title="Compatibilidade com o seu nível">' + esc(v.compatibility) + '</span>' : '') + '</div></div><button class="btn btn-outline" data-open-group="' + Number(v.groupId) + '">Ver grupo</button></article>'; }
+function recCard(v) { return '<article class="vacancy-card"><div class="mini-cover" style="' + styleColor(v.groupId) + '">' + esc(initials(v.group)) + '</div><div class="vacancy-main"><h3>' + esc(v.title || 'Oportunidade musical') + '</h3><p>' + esc(v.group) + ' · ' + esc(v.city) + '</p><div class="vacancy-badges"><span>' + esc(v.level ? levelLabel(v.level) : 'Nível livre') + '</span><span title="Gêneros em comum com o seu perfil">' + Number(v.sharedGenres) + ' gênero(s) em comum: ' + esc(v.genres) + '</span>' + (v.compatibility ? '<span class="compat ' + (v.compatibility === 'Compatível' ? 'compat-ok' : 'compat-low') + '" title="Compatibilidade com o seu nível">' + esc(v.compatibility) + '</span>' : '') + '</div></div><button class="btn btn-outline" data-open-group="' + Number(v.groupId) + '">Ver grupo</button></article>'; }
 function renderRecommended() {
   const f=state.recFilter, r=state.rec;
-  const form='<form class="rec-filters" data-rec-form><label class="searchbox" style="margin-left:0">' + ICON('search') + '<input id="rec-role" type="search" maxlength="100" placeholder="Função ou instrumento" value="' + esc(f.funcao) + '" aria-label="Filtrar por função ou instrumento"></label><select id="rec-level" class="rec-select" aria-label="Filtrar por nível mínimo"><option value="">Qualquer nível mínimo</option>' + LEVELS.map(l=>'<option value="' + l + '"' + (f.nivel===l?' selected':'') + '>' + l + '</option>').join('') + '</select><button class="btn btn-outline" type="submit">Filtrar</button></form>';
+  const form='<form class="rec-filters" data-rec-form><label class="searchbox" style="margin-left:0">' + ICON('search') + '<input id="rec-role" type="search" maxlength="100" placeholder="Função ou instrumento" value="' + esc(f.funcao) + '" aria-label="Filtrar por função ou instrumento"></label><select id="rec-level" class="rec-select" aria-label="Filtrar por nível mínimo"><option value="">Qualquer nível mínimo</option>' + LEVELS.map(l=>'<option value="' + l + '"' + (f.nivel===l?' selected':'') + '>' + levelLabel(l) + '</option>').join('') + '</select><button class="btn btn-outline" type="submit">Filtrar</button></form>';
   let body;
   if(state.demo) body='<p class="log-note">Disponível só com a interface conectada ao banco.</p>';
   else if(!r || r.loading) body='<p class="log-note">Carregando recomendações…</p>';
@@ -117,19 +123,52 @@ function renderVacancies() {
 }
 function renderMatches() {
   const rows=state.data.matches;
-  return '<div class="page-intro"><span class="eyebrow">CONEXÕES QUE FAZEM SENTIDO</span><h1>Seus matches.</h1><p>Quando o interesse é mútuo, a conversa pode começar. Aqui estão suas conexões registradas no banco.</p></div>' + (rows.length ? '<div class="match-list">' + rows.map(m=>'<article class="match-card"><div class="mini-cover" style="' + styleColor(m.otherId) + '">' + esc(initials(m.name)) + '</div><div class="match-main"><h3>' + esc(m.name) + '</h3><p>Conexão ' + esc(m.status.toLowerCase()) + '</p>' + (m.status==='Ativo' && m.otherIsGroup ? '<div class="convert-row"><input class="convert-role" id="role-' + Number(m.id) + '" maxlength="100" placeholder="Sua função no grupo (ex.: Guitarrista)" aria-label="Sua função no grupo"><button class="btn btn-outline" data-convert="' + Number(m.id) + '">Converter em participação</button></div>' : '') + '</div><span class="match-time">' + esc(m.created || '') + '</span></article>').join('') + '</div>' : empty('Ainda não há matches','Explore os grupos e mostre seu interesse para começar.','<a class="btn btn-pink" href="#descobrir">Descobrir grupos</a>')) + renderMatchLog();
+  const card=m=>{
+    const isNew=Number(m.id)===state.newMatchId;
+    const canConvert=m.status==='Ativo' && m.otherIsGroup;
+    return '<article class="match-card' + (isNew ? ' is-new' : '') + '"><div class="mini-cover" style="' + styleColor(m.otherId) + '">' + esc(initials(m.name)) + '</div><div class="match-main"><div class="match-title"><h3>' + esc(m.name) + '</h3>' + (isNew ? '<span class="new-badge">Novo</span>' : '') + statusPill(m.status) + '</div><p>' + (m.otherIsGroup ? 'Grupo musical' : 'Músico') + (m.created ? ' · desde ' + esc(m.created) : '') + '</p>' +
+      (canConvert ? '<div class="convert-row"><input class="convert-role" id="role-' + Number(m.id) + '" maxlength="100" placeholder="Sua função no grupo (ex.: Guitarrista)" aria-label="Sua função no grupo"><button class="btn btn-outline" data-convert="' + Number(m.id) + '">Entrar no grupo</button></div>' : '') +
+      '</div></article>';
+  };
+  return '<div class="page-intro"><span class="eyebrow">CONEXÕES QUE FAZEM SENTIDO</span><h1>Seus matches.</h1><p>Quando o interesse é mútuo, a conversa pode começar. Com um grupo, você pode confirmar a sua entrada informando a sua função.</p></div>' +
+    (rows.length ? '<div class="match-list">' + rows.map(card).join('') + '</div>' : empty('Ainda não há matches','Explore os grupos e mostre seu interesse para começar.','<a class="btn btn-pink" href="#descobrir">Descobrir grupos</a>')) +
+    (rows.length ? renderMatchLog() : '');
 }
 function renderMatchLog() {
-  const log=state.data.matchLog;
-  if(log===undefined) return '';
-  const body=log===null ? '<p class="log-note">O histórico de matches ainda não está disponível.</p>'
-    : log.length ? '<table class="log-table"><thead><tr><th>Match</th><th>De</th><th>Para</th><th>Quando</th><th>Usuário do banco</th></tr></thead><tbody>' + log.map(l=>'<tr><td>#' + esc(l.match ?? '—') + '</td><td>' + esc(l.from) + '</td><td>' + esc(l.to) + '</td><td>' + esc(l.when) + '</td><td>' + esc(l.who) + '</td></tr>').join('') + '</tbody></table>'
-    : '<p class="log-note">Nenhuma mudança de situação registrada ainda.</p>';
-  return '<section class="section"><div class="page-intro"><span class="eyebrow">AUDITORIA</span><h2>Histórico de matches</h2><p>Gravado automaticamente pelo trigger a cada mudança de situação de um match.</p></div>' + body + '</section>';
+  const available=state.data.matchLog;
+  if(available===undefined) return '';
+  const head='<div class="section-head"><div><span class="eyebrow">LINHA DO TEMPO</span><h2>Histórico das conexões</h2></div></div>';
+  if(available===null) return '<section class="section history">' + head + '<p class="log-note">O histórico ainda não está disponível.</p></section>';
+  const f=state.logFilter, l=state.log, names=Object.fromEntries(state.data.matches.map(m=>[String(m.id),m.name]));
+  const select=(id,label,all,options,value)=>'<select id="' + id + '" class="rec-select" data-log-filter aria-label="' + label + '"><option value="">' + all + '</option>' + options.map(([v,t])=>'<option value="' + esc(v) + '"' + (String(value)===String(v)?' selected':'') + '>' + esc(t) + '</option>').join('') + '</select>';
+  const filters='<div class="rec-filters">' +
+    select('log-match','Filtrar por conexão','Todas as conexões',state.data.matches.map(m=>[m.id,m.name]),f.match) +
+    select('log-status','Filtrar pela nova situação','Qualquer situação',MATCH_STATUS.map(x=>[x,'Ficou ' + STATUS_LABEL[x].toLowerCase()]),f.situacao) + '</div>';
+  let body;
+  if(state.demo) body='<p class="log-note">Disponível só com a interface conectada ao banco.</p>';
+  else if(!l || l.loading) body='<p class="log-note">Carregando histórico…</p>';
+  else if(l.error) body='<p class="log-note">' + esc(l.error) + '</p>';
+  else if(!l.rows.length) body='<p class="log-note">' + (f.match || f.situacao ? 'Nenhuma mudança encontrada com esses filtros.' : 'Nenhuma conexão mudou de situação ainda.') + '</p>';
+  else body='<ol class="history-list">' + l.rows.map(x=>'<li><strong>' + esc(names[String(x.match)] || 'Conexão') + '</strong><span class="history-change">' + statusPill(x.from) + '<span aria-label="para">→</span>' + statusPill(x.to) + '</span><time>' + esc(x.when) + '</time></li>').join('') + '</ol>';
+  return '<section class="section history">' + head + '<p class="log-note">Cada mudança de situação é registrada automaticamente pelo banco.</p>' + filters + body + '</section>';
+}
+const logKey = () => state.userId + '|' + state.logFilter.match + '|' + state.logFilter.situacao;
+async function loadLog() {
+  if(state.demo) return;
+  const key=logKey();
+  state.log={key,loading:true};
+  try {
+    const params=new URLSearchParams({user:String(state.userId),match:state.logFilter.match,situacao:state.logFilter.situacao});
+    const res=await fetch('/api/matches/log?' + params,{cache:'no-store'});
+    const payload=await res.json().catch(()=>({}));
+    if(state.log.key!==key) return;
+    state.log=res.ok ? {key,rows:payload.rows} : {key,error:payload.error || 'Não foi possível carregar o histórico.'};
+  } catch(_) { if(state.log.key===key) state.log={key,error:'Não foi possível carregar o histórico.'}; }
+  if(route()==='matches') render();
 }
 function renderProfile() {
   const m=me() || {name:'Seu perfil'};
-  return '<div class="profile-hero"><div class="avatar-xl">' + esc(initials(m.artist || m.name)) + '</div><div><span class="eyebrow">PERFIL MUSICAL</span><h1>' + esc(m.artist || m.name) + '</h1><p>' + esc(m.category || 'Músico') + ' · ' + esc(m.level || 'Nível não informado') + '</p></div></div><div class="profile-grid"><div class="info-card"><h3>Sua história</h3><p>' + esc(m.bio || 'Sua biografia musical ainda não foi preenchida. Você pode editá-la no aplicativo desktop do projeto.') + '</p></div><div class="info-card"><h3>Em números</h3><div class="profile-facts"><div><span>Interesse retribuído</span><strong>' + (state.data.stats.rate == null ? '—' : Number(state.data.stats.rate).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '%') + '</strong><small class="fact-source">' + (state.demo ? 'dados de demonstração' : state.data.stats.rate == null ? 'indisponível no momento' : 'dos seus likes receberam like de volta') + '</small></div><div><span>Matches</span><strong>' + Number(state.data.stats.matches) + '</strong></div><div><span>Categoria principal</span><strong>' + esc(m.category || 'Não informada') + '</strong></div></div></div></div>';
+  return '<div class="profile-hero"><div class="avatar-xl">' + esc(initials(m.artist || m.name)) + '</div><div><span class="eyebrow">PERFIL MUSICAL</span><h1>' + esc(m.artist || m.name) + '</h1><p>' + esc(m.category || 'Músico') + ' · ' + esc(m.level ? levelLabel(m.level) : 'Nível não informado') + '</p></div></div><div class="profile-grid"><div class="info-card"><h3>Sua história</h3><p>' + esc(m.bio || 'Sua biografia musical ainda não foi preenchida. Você pode editá-la no aplicativo desktop do projeto.') + '</p></div><div class="info-card"><h3>Em números</h3><div class="profile-facts"><div><span>Interesse retribuído</span><strong>' + (state.data.stats.rate == null ? '—' : Number(state.data.stats.rate).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '%') + '</strong><small class="fact-source">' + (state.demo ? 'dados de demonstração' : state.data.stats.rate == null ? 'indisponível no momento' : 'dos seus likes receberam like de volta') + '</small></div><div><span>Matches</span><strong>' + Number(state.data.stats.matches) + '</strong></div><div><span>Categoria principal</span><strong>' + esc(m.category || 'Não informada') + '</strong></div></div></div></div>';
 }
 function render() {
   if(!state.data) return;
@@ -140,6 +179,7 @@ function render() {
   const main=document.getElementById('app-main');
   main.innerHTML=({inicio:renderHome,descobrir:renderDiscover,vagas:renderVacancies,matches:renderMatches,perfil:renderProfile})[r]();
   if(r==='vagas' && !state.demo && (!state.rec || state.rec.key!==recKey())) loadRecommended();
+  if(r==='matches' && !state.demo && state.data.matchLog!==null && (!state.log || state.log.key!==logKey())) loadLog();
 }
 function fillUsers() {
   const sel=document.getElementById('user-select');
@@ -151,7 +191,7 @@ async function load() {
   try {
     const res=await fetch('/api/bootstrap?user=' + encodeURIComponent(state.userId),{cache:'no-store'});
     if(!res.ok) throw Error('Servidor ou banco indisponível');
-    state.data=await res.json(); state.demo=false; state.rec=null; state.members={}; badge.textContent='Conectado ao MySQL'; badge.className='connection-badge live';
+    state.data=await res.json(); state.demo=false; state.rec=null; state.members={}; state.log=null; badge.textContent='Conectado ao MySQL'; badge.className='connection-badge live';
   } catch(_) {
     state.data=JSON.parse(JSON.stringify(demo)); state.demo=true; badge.textContent='Modo demonstração'; badge.className='connection-badge demo';
   }
@@ -163,15 +203,17 @@ async function swipe(decision) {
   if(g.swiped) { toast('Você já avaliou este grupo.'); return; }
   if(g.status==='Inativo') { toast('Este grupo está inativo.'); return; }
   state.busy=true; document.querySelectorAll('[data-swipe]').forEach(b=>b.disabled=true);
+  let matched=false;
   try {
     if(!state.demo) {
       const body=new URLSearchParams({user:String(state.userId),target:String(g.id),decision});
       const res=await fetch('/api/swipes',{method:'POST',body});
       const payload=await res.json();
       if(!res.ok) throw Error(payload.error || 'Não foi possível registrar o swipe.');
+      matched=Boolean(payload.matched); if(matched) state.newMatchId=Number(payload.matchId);
     }
     const original=state.data.groups.find(x=>Number(x.id)===Number(g.id)); if(original) original.swiped=true;
-    toast(decision==='Dislike' ? 'Grupo passado. Próxima descoberta!' : decision==='Super Like' ? 'Super Like enviado!' : 'Like enviado! Agora é esperar a sintonia.');
+    if(matched) toast('Deu match com ' + g.name + '! Veja em Matches.'); else toast(decision==='Dislike' ? 'Grupo passado. Próxima descoberta!' : decision==='Super Like' ? 'Super Like enviado!' : 'Like enviado! Agora é esperar a sintonia.');
     if(state.groupIndex>=groups.length-1) state.groupIndex=0; else state.groupIndex++;
     if(!state.demo) await load(); else render();
   } catch(error) { toast(error.message); }
@@ -221,6 +263,11 @@ document.addEventListener('input',event=>{
     const el=event.target, pos=el.selectionStart; state.search=el.value;state.groupIndex=0;render();
     const next=document.getElementById(el.id);if(next){next.focus();next.setSelectionRange(pos,pos);}
   }
+});
+document.addEventListener('change',event=>{
+  if(!event.target.matches('[data-log-filter]')) return;
+  state.logFilter={match:document.getElementById('log-match')?.value || '',situacao:document.getElementById('log-status')?.value || ''};
+  loadLog(); render();
 });
 document.getElementById('user-select').addEventListener('change',event=>{state.userId=Number(event.target.value);localStorage.setItem('sync-user',String(state.userId));state.groupIndex=0;load();});
 window.addEventListener('hashchange',()=>{state.search='';render();window.scrollTo({top:0,behavior:'smooth'});});

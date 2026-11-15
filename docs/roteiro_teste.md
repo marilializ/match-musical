@@ -65,6 +65,34 @@ Os valores esperados abaixo valem para um banco **recem-criado** com `01` + `02`
 
 - [ ] Com `SYNC_DB_PASSWORD` errada, abrir a aplicacao → aparece uma mensagem de erro de acesso, sem travar o programa.
 
+## 7. Etapa 6 — views, funcoes, procedimentos e triggers na interface web
+
+Banco recriado com o reset (como `root`, na raiz do repositorio) e servidor web no ar:
+
+```sh
+mysql --commands --default-character-set=utf8mb4 -u root -p -e "source sql/00_reset.sql"
+mvn -q compile exec:java "-Dexec.mainClass=WebMain"    # abrir http://127.0.0.1:8080
+```
+
+- [ ] O reset lista 2 views, 2 funcoes, 2 procedimentos e 2 triggers, e termina com `linhas_log` = 0.
+- [ ] `Etapa6IntegrationCheck` imprime as 3 linhas `... OK` (comando no README, secao *Testes*). Ele nao deixa nada gravado.
+
+**Tarefa 4 — views e funcoes**
+
+- [ ] **Vagas → Recomendadas para voce** (`vw_recomendacao_vagas` + `fn_compatibilidade_vaga`): lista vagas com generos em comum e a compatibilidade de cada uma. Filtrar por funcao (ex.: `gui`) e por nivel muda a lista; os 3 indicadores acima dela acompanham o perfil escolhido no topo.
+- [ ] **Descobrir → detalhes do grupo → Integrantes** (`vw_integrantes_grupo`): mostra os integrantes ativos com funcao e data de entrada.
+- [ ] **Perfil** (`fn_taxa_retribuicao_usuario`): mostra o percentual "dos seus likes receberam like de volta".
+- [ ] Nenhum nome de view ou funcao aparece na tela.
+
+**Tarefa 5 — procedimentos e triggers**
+
+- [ ] **Match pelo trigger** (`tr_swipe_cria_match`): com o perfil Pedro Guitar (#2), dar Like no grupo #64 em **Descobrir** → aviso "Deu match com …" e, em **Matches**, o card novo com o selo *Novo* e a etiqueta *Ativa*.
+- [ ] **Conversao** (`sp_converter_match_em_participacao`): nesse card, informar a funcao (ex.: `Guitarrista`) → **Entrar no grupo** → o card passa para *Convertida*.
+- [ ] **Log** (`tr_match_log_situacao`): em **Matches → Historico das conexoes** aparece "Ativa → Convertida" para esse grupo. Os filtros de conexao e de situacao mudam a lista na hora; o historico so mostra conexoes do perfil escolhido.
+- [ ] **Erro do procedimento na tela:** abrir **Matches** em duas abas com o mesmo perfil e um match *Ativa* com grupo. Converter na primeira aba; na segunda, sem recarregar, tentar converter o mesmo match → aviso "So um match Ativo pode ser convertido…".
+- [ ] **Sincronizacao** (`sp_sincronizar_situacao_grupos`): em **Vagas → Sincronizar grupos** → aviso com grupos atualizados e vagas fechadas. Clicar de novo → "0 grupo(s) atualizado(s), 0 vaga(s) fechada(s)".
+- [ ] Rodar o reset de novo no fim, para voltar o banco ao seed.
+
 ## 6. Antes do envio
 
 - [ ] `git status` limpo e tudo enviado para o GitHub.

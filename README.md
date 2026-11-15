@@ -53,9 +53,31 @@ Tambem da para executar `Main` direto pela IDE.
 
 ## Interface web responsiva (em desenvolvimento)
 
-A nova interface mobile first esta em [`web/`](web/README.md), com Inicio, Descobrir, Vagas, Matches e Perfil. O servidor local le o MySQL pelo mesmo `ConnectionFactory` do app Swing. Inicie com `mvn compile exec:java -Dexec.mainClass=WebMain` e abra `http://127.0.0.1:8080`. Sem banco, a tela mostra dados de demonstracao.
+A nova interface mobile first esta em [`web/`](web/README.md), com Inicio, Descobrir, Vagas, Matches e Perfil. O servidor local le o MySQL pelo mesmo `ConnectionFactory` do app Swing. Inicie com `mvn compile exec:java "-Dexec.mainClass=WebMain"` (as aspas sao necessarias no PowerShell) e abra `http://127.0.0.1:8080`. Sem banco, a tela mostra dados de demonstracao.
 
 A selecao de perfil ainda nao e login; por seguranca, o servidor atende apenas em `127.0.0.1`. Consulte [`web/README.md`](web/README.md) para detalhes.
+
+### Views, funcoes, procedimentos e triggers na interface (Etapa 6)
+
+Para recriar o banco com todos os objetos das Etapas 4 e 5, rode na raiz do repositorio, como `root`:
+
+```sh
+mysql --commands --default-character-set=utf8mb4 -u root -p -e "source sql/00_reset.sql"
+```
+
+O `00_reset.sql` apaga o `match_musical`, roda `01`, `02`, `05`, as duas views e o `06_funcoes_procedimentos_triggers.sql`, e da ao `sync_app` a permissao `EXECUTE`. Use antes de cada ensaio, porque a demonstracao grava swipes, matches e participacoes.
+
+| Onde na interface | O que mostra | Objeto do banco |
+|---|---|---|
+| Vagas → *Recomendadas para voce* | Vagas com generos em comum, filtros por funcao e nivel, e 3 indicadores | `vw_recomendacao_vagas`, `fn_compatibilidade_vaga` |
+| Descobrir → detalhes do grupo | Integrantes ativos do grupo | `vw_integrantes_grupo` |
+| Perfil | Percentual de likes retribuidos | `fn_taxa_retribuicao_usuario` |
+| Descobrir → Like | Aviso "Deu match" quando o like e mutuo | `tr_swipe_cria_match` |
+| Matches → *Entrar no grupo* | Converte o match em participacao; recusas aparecem como aviso | `sp_converter_match_em_participacao` |
+| Matches → *Historico das conexoes* | Mudancas de situacao das conexoes do perfil, com filtros | `tr_match_log_situacao` (tabela `Log_Match`) |
+| Vagas → *Sincronizar grupos* | Grupos atualizados e vagas fechadas | `sp_sincronizar_situacao_grupos` |
+
+O acesso fica em `ViewsFuncoesDAO` e `ProcedimentosTriggersDAO` (SQL explicito com `?`). Funcoes sao chamadas com `SELECT fn(?)` e procedimentos com `CallableStatement`. Se faltar um objeto no banco, so a secao dele mostra um aviso.
 
 ## Telas
 
@@ -150,9 +172,10 @@ Com as variaveis `SYNC_DB_*` configuradas e apontando para um **banco de teste**
 ```sh
 mvn test-compile exec:java -Dexec.mainClass=MusicoDAOIntegrationCheck -Dexec.classpathScope=test
 mvn test-compile exec:java -Dexec.mainClass=VagaDAOIntegrationCheck  -Dexec.classpathScope=test
+mvn test-compile exec:java -Dexec.mainClass=Etapa6IntegrationCheck   -Dexec.classpathScope=test
 ```
 
-Cada teste cria e remove os proprios dados e verifica insercao, listagem, alteracao, rollback de transacao e exclusao em cascata. O teste de vagas tambem cobre o erro de chave estrangeira.
+Cada teste cria e remove os proprios dados e verifica insercao, listagem, alteracao, rollback de transacao e exclusao em cascata. O teste de vagas tambem cobre o erro de chave estrangeira. O `Etapa6IntegrationCheck` exige o banco do `00_reset.sql`: confere as views e funcoes, as mensagens de erro do procedimento de conversao e os dois triggers, estes numa transacao desfeita com `ROLLBACK` (as contagens de `Swipe`, `Match`, `Log_Match` e `Participa` terminam iguais). No PowerShell, ponha aspas em cada `-D...`.
 
 O roteiro manual, tela por tela, esta em [`docs/roteiro_teste.md`](docs/roteiro_teste.md).
 
@@ -168,5 +191,6 @@ A disciplina pede que o grupo informe onde usou IA e como validou o que ela prod
 | Consultas SQL (as 8 consultas) | Claude | Apoio para elaborar as 8 consultas e para corrigir erros no codigo | *(Validamos manualmente todos os requisitos e consultas)* |
 | Classes ConsultaSQL, DashboardDAO, DashboardFrame e GraficoBarrasPanel | Claude | Ajudou a criar essas classes | *(Validamos manualmente todos os requisitos e consultas)* |
 | Consulta de auditoria Swipe x Match (Etapa 4, item 5) | Claude e Claude Code | O Claude gerou a consulta (FULL OUTER JOIN emulado) e o script de teste com rollback. O Claude Code levantou antes o estado do projeto (DDL de `Swipe` e `Match`, carga, versao do MySQL, consultas existentes), rodou a consulta e o teste no MySQL local e interpretou o `EXPLAIN`. | Consulta executada no MySQL local: 30 linhas (2 `Consistente`, 28 `Match sem like mutuo`), cada `Match` aparece uma vez (30 ids distintos = `COUNT(*)` de `Match`). Teste com `ROLLBACK`: 31 linhas, com 1 `Like mutuo sem match` para o par (1,3), e `Swipe` voltou a 40 linhas. |
+| Etapa 6, tarefas 4 e 5 (interface web) | Claude Code | Consolidou o `06` e criou o `00_reset.sql`; escreveu `ViewsFuncoesDAO`, `ProcedimentosTriggersDAO`, as telas em `web/` e o `Etapa6IntegrationCheck`; revisou textos e layout da interface. | Testes manuais da secao 7 do roteiro no `localhost` (match pelo trigger, conversao, historico, sincronizacao e aviso de erro do procedimento) e `Etapa6IntegrationCheck` passando com `ROLLBACK`. |
 
 *(preencher: a regra que o grupo seguiu para aceitar o que a IA gerou — por exemplo, "nenhum SQL entrou sem ser executado no MySQL e revisado por um integrante que soubesse explica-lo")*

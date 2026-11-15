@@ -26,6 +26,9 @@ public final class WebMain {
     private static final String MATCH_TABLE = (char) 96 + "Match" + (char) 96;
     private static final Path WEB_ROOT = Path.of(System.getProperty("sync.web.dir", "web")).toAbsolutePath().normalize();
     private static final int PORT = Integer.parseInt(System.getenv().getOrDefault("SYNC_WEB_PORT", "8080"));
+    private static final ViewsFuncoesDAO VIEWS_FUNCOES = new ViewsFuncoesDAO();
+    private static final List<String> NIVEIS =
+            List.of("Iniciante", "Basico", "Intermediario", "Avancado", "Profissional");
 
     private WebMain() {}
 
@@ -40,6 +43,8 @@ public final class WebMain {
         server.createContext("/api/swipes", WebMain::swipe);
         server.createContext("/api/matches/convert", WebMain::convertMatch);
         server.createContext("/api/groups/sync", WebMain::syncGroups);
+        server.createContext("/api/vacancies/recommended", WebMain::recommendedVacancies);
+        server.createContext("/api/groups/members", WebMain::groupMembers);
         server.createContext("/", WebMain::staticFile);
         server.setExecutor(Executors.newFixedThreadPool(4));
         server.start();
@@ -57,13 +62,22 @@ public final class WebMain {
             int requested = integer(form(exchange.getRequestURI().getRawQuery()).get("user"), 0);
             int user = musicians.stream().anyMatch(m -> ((Number) m.get("id")).intValue() == requested)
                     ? requested : musicians.isEmpty() ? 0 : ((Number) musicians.get(0).get("id")).intValue();
+            // Cada secao confere se o seu objeto da Etapa 4/5 esta instalado:
+            // se faltar um, so aquela secao mostra o aviso.
+            Map<String, Object> objects = map(
+                    "fn_compatibilidade_vaga", VIEWS_FUNCOES.objetoExiste("fn_compatibilidade_vaga"),
+                    "fn_taxa_retribuicao_usuario", VIEWS_FUNCOES.objetoExiste("fn_taxa_retribuicao_usuario"),
+                    "vw_recomendacao_vagas", VIEWS_FUNCOES.objetoExiste("vw_recomendacao_vagas"),
+                    "vw_integrantes_grupo", VIEWS_FUNCOES.objetoExiste("vw_integrantes_grupo")
+            );
             Map<String, Object> body = map(
                     "musicians", musicians,
                     "groups", groups(connection, user),
-                    "vacancies", vacancies(connection, user),
+                    "vacancies", vacancies(connection, user, (Boolean) objects.get("fn_compatibilidade_vaga")),
                     "matches", matches(connection, user),
-                    "stats", stats(connection, user),
-                    "matchLog", matchLog(connection)
+                    "stats", stats(connection, user, (Boolean) objects.get("fn_taxa_retribuicao_usuario")),
+                    "matchLog", matchLog(connection),
+                    "objects", objects
             );
             sendJson(exchange, 200, body);
         } catch (SQLException error) {
@@ -206,6 +220,99 @@ public final class WebMain {
     }
 
     /**
+     * Vagas recomendadas (Etapa 6, tarefa 4): view vw_recomendacao_vagas com
+     * a compatibilidade de fn_compatibilidade_vaga e o indicador da tela.
+     * Parametros: user (obrigatorio), funcao e nivel (filtros opcionais).
+     */
+    private static void recommendedVacancies(HttpExchange exchange) throws IOException {
+        if (!"GET".equals(exchange.getRequestMethod())) {
+            sendJson(exchange, 405, map("error", "Metodo nao permitido."));
+            return;
+        }
+        Map<String, String> query;
+        try {
+            query = form(exchange.getRequestURI().getRawQuery());
+        } catch (IllegalArgumentException error) {
+            sendJson(exchange, 400, map("error", "Filtro invalido."));
+            return;
+        }
+        int user = integer(query.get("user"), 0);
+        String role = blankToNull(query.get("funcao"));
+        String level = blankToNull(query.get("nivel"));
+        if (user <= 0) {
+            sendJson(exchange, 400, map("error", "Escolha um musico."));
+            return;
+        }
+        if (role != null && role.length() > 100) {
+            sendJson(exchange, 400, map("error", "A funcao pode ter ate 100 caracteres."));
+            return;
+        }
+        if (level != null && !NIVEIS.contains(level)) {
+            sendJson(exchange, 400, map("error", "Nivel minimo invalido."));
+            return;
+        }
+        try {
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (ViewsFuncoesDAO.VagaRecomendada v : VIEWS_FUNCOES.vagasRecomendadas(user, role, level)) {
+                rows.add(map("id", v.idVaga(), "groupId", v.idGrupo(), "group", v.grupo(),
+                        "city", v.cidade(), "title", v.funcaoInstrumento(), "level", v.nivelMinimo(),
+                        "genres", v.generosEmComum(), "sharedGenres", v.qtdGenerosEmComum(),
+                        "compatibility", v.compatibilidade()));
+            }
+            ViewsFuncoesDAO.IndicadorCompatibilidade indicator = VIEWS_FUNCOES.indicadorCompatibilidade(user);
+            sendJson(exchange, 200, map("rows", rows, "indicator", map(
+                    "open", indicator.vagasAbertas(),
+                    "compatible", indicator.compativeis(),
+                    "recommended", indicator.recomendadas())));
+        } catch (SQLException error) {
+            objectError(exchange, error, "carregar as vagas recomendadas");
+        }
+    }
+
+    /** Integrantes ativos de um grupo (view vw_integrantes_grupo, Etapa 4). */
+    private static void groupMembers(HttpExchange exchange) throws IOException {
+        if (!"GET".equals(exchange.getRequestMethod())) {
+            sendJson(exchange, 405, map("error", "Metodo nao permitido."));
+            return;
+        }
+        int group;
+        try {
+            group = integer(form(exchange.getRequestURI().getRawQuery()).get("group"), 0);
+        } catch (IllegalArgumentException error) {
+            group = 0;
+        }
+        if (group <= 0) {
+            sendJson(exchange, 400, map("error", "Grupo invalido."));
+            return;
+        }
+        try {
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (ViewsFuncoesDAO.Integrante i : VIEWS_FUNCOES.integrantesDoGrupo(group)) {
+                rows.add(map("id", i.idMusico(), "name", i.musico(), "role", i.funcao(), "since", i.dataEntrada()));
+            }
+            sendJson(exchange, 200, map("rows", rows));
+        } catch (SQLException error) {
+            objectError(exchange, error, "carregar os integrantes");
+        }
+    }
+
+    /** Traduz a falta de view (1146) ou funcao (1305) em aviso para a secao. */
+    private static void objectError(HttpExchange exchange, SQLException error, String action) throws IOException {
+        if (error.getErrorCode() == 1146 || error.getErrorCode() == 1305) {
+            sendJson(exchange, 501, map("error", "Este recurso esta indisponivel no banco no momento."));
+        } else if (error.getErrorCode() == 1370) {
+            sendJson(exchange, 403, map("error", "O usuario do banco nao tem permissao para esta acao."));
+        } else {
+            System.err.println("Falha ao " + action + ": " + error.getMessage());
+            sendJson(exchange, 503, map("error", "Nao foi possivel " + action + "."));
+        }
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    /**
      * Ultimas mudancas de situacao de match (tabela Log_Match, Etapa 5,
      * pessoa 2). Devolve null se a tabela ainda nao existir no banco.
      */
@@ -259,9 +366,9 @@ public final class WebMain {
         if ("45000".equals(error.getSQLState())) {
             sendJson(exchange, 400, map("error", error.getMessage()));
         } else if (error.getErrorCode() == 1305) {
-            sendJson(exchange, 501, map("error", "O procedimento da Etapa 5 nao esta instalado no banco."));
+            sendJson(exchange, 501, map("error", "Esta acao esta indisponivel no banco no momento."));
         } else if (error.getErrorCode() == 1370) {
-            sendJson(exchange, 403, map("error", "O usuario do banco nao tem permissao EXECUTE (GRANT EXECUTE ON match_musical.*)."));
+            sendJson(exchange, 403, map("error", "O usuario do banco nao tem permissao para esta acao."));
         } else {
             System.err.println("Falha ao " + action + ": " + error.getMessage());
             sendJson(exchange, 503, map("error", "Nao foi possivel " + action + "."));
@@ -324,19 +431,21 @@ public final class WebMain {
     /**
      * Vagas abertas com a compatibilidade do musico selecionado (Etapa 5,
      * funcao fn_compatibilidade_vaga). O "?" recebe o id do musico.
+     * Sem a funcao instalada, a lista sai sem a coluna de compatibilidade.
      */
-    private static List<Map<String, Object>> vacancies(Connection c, int user) throws SQLException {
+    private static List<Map<String, Object>> vacancies(Connection c, int user, boolean withCompatibility)
+            throws SQLException {
         List<Map<String, Object>> rows = new ArrayList<>();
         String sql = """
             SELECT v.id_vaga, v.funcao_instrumento, v.id_grupo_musical,
                    g.nome_grupo, g.cidade_atuacao, v.nivel_minimo, v.descricao,
-                   fn_compatibilidade_vaga(?, v.id_vaga) AS compatibilidade
+                   %s AS compatibilidade
               FROM Vaga v JOIN Grupo_Musical g ON g.id_usuario = v.id_grupo_musical
              WHERE v.situacao = 'Aberta'
              ORDER BY v.id_vaga
-            """;
+            """.formatted(withCompatibility ? "fn_compatibilidade_vaga(?, v.id_vaga)" : "NULL");
         try (PreparedStatement s = c.prepareStatement(sql)) {
-            s.setInt(1, user);
+            if (withCompatibility) s.setInt(1, user);
             try (ResultSet r = s.executeQuery()) {
                 while (r.next()) rows.add(map(
                         "id", r.getInt(1), "title", r.getString(2), "groupId", r.getInt(3),
@@ -370,7 +479,7 @@ public final class WebMain {
         return rows;
     }
 
-    private static Map<String, Object> stats(Connection c, int user) throws SQLException {
+    private static Map<String, Object> stats(Connection c, int user, boolean withRateFunction) throws SQLException {
         int groupCount, vacancyCount, matchCount;
         try (PreparedStatement s = c.prepareStatement(
                 "SELECT (SELECT COUNT(*) FROM Grupo_Musical), " +
@@ -381,33 +490,9 @@ public final class WebMain {
                 r.next(); groupCount = r.getInt(1); vacancyCount = r.getInt(2); matchCount = r.getInt(3);
             }
         }
-        double rate = 0;
-        try (PreparedStatement s = c.prepareStatement(
-                "SELECT COUNT(*), COALESCE(SUM(CASE WHEN sw.id_usuario_encontrado <> sw.id_usuario_realizou " +
-                "AND EXISTS (SELECT 1 FROM Swipe reply WHERE reply.id_usuario_realizou = sw.id_usuario_encontrado " +
-                "AND reply.id_usuario_encontrado = sw.id_usuario_realizou " +
-                "AND reply.tipo_decisao IN ('Like', 'Super Like')) THEN 1 ELSE 0 END), 0) " +
-                "FROM Swipe sw WHERE sw.id_usuario_realizou = ? AND sw.tipo_decisao IN ('Like', 'Super Like')")) {
-            s.setInt(1, user);
-            try (ResultSet r = s.executeQuery()) {
-                r.next(); long total = r.getLong(1); if (total > 0) rate = Math.round(10000.0 * r.getLong(2) / total) / 100.0;
-            }
-        }
-        // Usa a funcao da Etapa 5 quando ela estiver instalada no banco.
-        try (PreparedStatement available = c.prepareStatement(
-                "SELECT 1 FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() " +
-                "AND ROUTINE_TYPE = 'FUNCTION' AND ROUTINE_NAME = 'fn_taxa_retribuicao_usuario'")) {
-            try (ResultSet routine = available.executeQuery()) {
-                if (routine.next()) {
-                    try (PreparedStatement function = c.prepareStatement("SELECT fn_taxa_retribuicao_usuario(?)")) {
-                        function.setInt(1, user);
-                        try (ResultSet result = function.executeQuery()) {
-                            if (result.next()) rate = result.getDouble(1);
-                        }
-                    }
-                }
-            }
-        }
+        // A regra da taxa fica so na funcao da Etapa 5 (sem copia em Java).
+        // Sem a funcao instalada, rate vai null e a tela avisa.
+        Double rate = withRateFunction ? VIEWS_FUNCOES.taxaRetribuicao(user) : null;
         return map("groups", groupCount, "vacancies", vacancyCount, "matches", matchCount, "rate", rate);
     }
 

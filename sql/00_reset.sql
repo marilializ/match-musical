@@ -2,7 +2,7 @@
 -- RESET DO BANCO DE DEMONSTRACAO (Etapa 6)
 -- Recria o match_musical do zero, na ordem das etapas:
 --   01  tabelas (DDL)
---   02  carga de exemplo (seed)
+--   02  carga de exemplo e complemento de demonstracao
 --   05  consultas avancadas e indices da Etapa 4
 --   06_View_integrante_grupo / 07_recomendacao_vagas  views da Etapa 4
 --   06_funcoes_procedimentos_triggers  objetos da Etapa 5
@@ -33,6 +33,7 @@ DROP DATABASE IF EXISTS match_musical;
 
 SOURCE sql/01_criacao_tabelas.sql;
 SOURCE sql/02_insercao_dados.sql;
+SOURCE sql/02_complemento_demonstracao.sql;
 SOURCE sql/05_consultas_avancadas.sql;
 SOURCE sql/06_View_integrante_grupo.sql;
 SOURCE sql/07_recomendacao_vagas.sql;
@@ -58,4 +59,5 @@ ORDER BY tipo, objeto;
 
 SELECT (SELECT COUNT(*) FROM match_musical.Swipe)     AS swipes,
        (SELECT COUNT(*) FROM match_musical.`Match`)   AS matches,
+       (SELECT COUNT(*) FROM match_musical.Mensagem)  AS mensagens,
        (SELECT COUNT(*) FROM match_musical.Log_Match) AS linhas_log;

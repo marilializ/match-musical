@@ -4,6 +4,8 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.BorderFactory;
@@ -19,6 +21,7 @@ import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
 
 /**
@@ -43,6 +46,16 @@ public class DashboardFrame extends JFrame {
     private final GraficoBarrasPanel graficoGeneros =
             new GraficoBarrasPanel("Oferta x procura: " + GENEROS_NO_GRAFICO
                     + " generos com mais grupos (consulta 7)", "Grupos", "Musicos interessados");
+    private final GraficoBarrasPanel graficoNiveis =
+            new GraficoBarrasPanel("Músicos por nível de experiência", "Músicos");
+    private final GraficoBarrasPanel graficoHabilidade =
+            new GraficoBarrasPanel("Músicos por instrumento e experiência média", "Músicos", "Média (anos)");
+    private final GraficoPizzaPanel graficoDecisoes = new GraficoPizzaPanel();
+    private final JComboBox<String> filtroCategoria = new JComboBox<>();
+    private final JComboBox<String> filtroHabilidade = new JComboBox<>();
+    private final JTextField filtroInicio = new JTextField(10);
+    private final JTextField filtroFim = new JTextField(10);
+    private final JLabel resumoNiveis = new JLabel(" ");
 
     // Aba "Consultas"
     private final JComboBox<ConsultaSQL> seletorConsulta =
@@ -76,6 +89,7 @@ public class DashboardFrame extends JFrame {
         abas.addTab("Consultas", criarAbaConsultas());
         add(abas);
 
+        carregarFiltros();
         carregarVisaoGeral();
         carregarMusicos();
         atualizarConsultaSelecionada();
@@ -91,8 +105,26 @@ public class DashboardFrame extends JFrame {
         indicadores.add(cartao("Vagas abertas", totalVagas));
         indicadores.add(cartao("Matches ativos", totalMatches));
 
-        JPanel graficos = new JPanel(new GridLayout(1, 2, 12, 0));
+        JPanel filtros = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        filtros.add(new JLabel("Categoria principal:")); filtros.add(filtroCategoria);
+        filtros.add(new JLabel("Habilidade:")); filtros.add(filtroHabilidade);
+        filtros.add(new JLabel("De (AAAA-MM-DD):")); filtros.add(filtroInicio);
+        filtros.add(new JLabel("Até:")); filtros.add(filtroFim);
+        JButton aplicar = new JButton("Aplicar filtros");
+        aplicar.addActionListener(event -> carregarVisaoGeral());
+        filtros.add(aplicar);
+        JPanel topo = new JPanel(new BorderLayout());
+        topo.add(indicadores, BorderLayout.NORTH);
+        topo.add(filtros, BorderLayout.SOUTH);
+
+        JPanel graficos = new JPanel(new GridLayout(2, 3, 12, 12));
         graficos.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        JPanel niveis = new JPanel(new BorderLayout());
+        niveis.add(new JScrollPane(graficoNiveis), BorderLayout.CENTER);
+        niveis.add(resumoNiveis, BorderLayout.SOUTH);
+        graficos.add(niveis);
+        graficos.add(new JScrollPane(graficoHabilidade));
+        graficos.add(graficoDecisoes);
         graficos.add(new JScrollPane(graficoInstrumentos));
         graficos.add(new JScrollPane(graficoGeneros));
 
@@ -102,7 +134,7 @@ public class DashboardFrame extends JFrame {
         rodape.add(atualizar);
 
         JPanel aba = new JPanel(new BorderLayout());
-        aba.add(indicadores, BorderLayout.NORTH);
+        aba.add(topo, BorderLayout.NORTH);
         aba.add(graficos, BorderLayout.CENTER);
         aba.add(rodape, BorderLayout.SOUTH);
         return aba;
@@ -129,11 +161,53 @@ public class DashboardFrame extends JFrame {
 
     private void carregarVisaoGeral() {
         try {
+            LocalDate inicio = data(filtroInicio.getText());
+            LocalDate fim = data(filtroFim.getText());
+            if (inicio != null && fim != null && fim.isBefore(inicio))
+                throw new IllegalArgumentException("A data final deve ser igual ou posterior à inicial.");
+            String categoria = (String) filtroCategoria.getSelectedItem();
+            String habilidade = (String) filtroHabilidade.getSelectedItem();
             DashboardDAO.Indicadores numeros = dao.indicadores();
             totalMusicos.setText(String.valueOf(numeros.musicos()));
             totalGrupos.setText(String.valueOf(numeros.grupos()));
             totalVagas.setText(String.valueOf(numeros.vagasAbertas()));
             totalMatches.setText(String.valueOf(numeros.matchesAtivos()));
+
+            DashboardDAO.Resultado niveis = dao.niveisPorCategoria(
+                    "Todas".equals(categoria) ? null : categoria);
+            List<String> nomesNivel = new ArrayList<>();
+            List<double[]> qtdNivel = new ArrayList<>();
+            int moda = 0;
+            String nomeModa = "—";
+            for (Object[] row : niveis.linhas()) {
+                String nome = String.valueOf(row[0]);
+                int qtd = ((Number) row[1]).intValue();
+                nomesNivel.add(nome); qtdNivel.add(new double[] {qtd});
+                if (qtd > moda) { moda = qtd; nomeModa = nome; }
+            }
+            graficoNiveis.setDados(nomesNivel, qtdNivel);
+            resumoNiveis.setText("Moda: " + nomeModa + (moda > 0 ? " (" + moda + ")" : ""));
+
+            DashboardDAO.Resultado instrumentosHabilidade = dao.instrumentosPorHabilidade(
+                    "Todas".equals(habilidade) ? null : habilidade);
+            List<String> nomesHab = new ArrayList<>();
+            List<double[]> valoresHab = new ArrayList<>();
+            for (Object[] row : instrumentosHabilidade.linhas()) {
+                if (((Number) row[1]).intValue() == 0) continue;
+                nomesHab.add(String.valueOf(row[0]));
+                valoresHab.add(new double[] {((Number) row[1]).doubleValue(),
+                        row[2] == null ? 0 : ((Number) row[2]).doubleValue()});
+            }
+            graficoHabilidade.setDados(nomesHab, valoresHab);
+
+            DashboardDAO.Resultado decisoes = dao.decisoesPorPeriodo(inicio, fim);
+            List<String> nomesDecisoes = new ArrayList<>();
+            List<Integer> qtdDecisoes = new ArrayList<>();
+            for (Object[] row : decisoes.linhas()) {
+                nomesDecisoes.add(String.valueOf(row[0]));
+                qtdDecisoes.add(((Number) row[1]).intValue());
+            }
+            graficoDecisoes.setDados(nomesDecisoes, qtdDecisoes);
 
             // Grafico 1: consulta 2 (so instrumentos com pelo menos 1 musico)
             DashboardDAO.Resultado instrumentos = dao.executar(ConsultaSQL.numero(2), null);
@@ -167,9 +241,26 @@ public class DashboardFrame extends JFrame {
                         ((Number) linha[colMusicos]).doubleValue()});
             }
             graficoGeneros.setDados(nomesGeneros, pares);
-        } catch (SQLException error) {
+        } catch (SQLException | IllegalArgumentException error) {
             mostrarErro(error);
         }
+    }
+
+    private static LocalDate data(String texto) {
+        if (texto.isBlank()) return null;
+        try { return LocalDate.parse(texto.trim()); }
+        catch (DateTimeParseException error) {
+            throw new IllegalArgumentException("Use datas no formato AAAA-MM-DD.");
+        }
+    }
+
+    private void carregarFiltros() {
+        filtroCategoria.addItem("Todas");
+        filtroHabilidade.addItem("Todas");
+        try {
+            for (String categoria : dao.categorias()) filtroCategoria.addItem(categoria);
+            for (String habilidade : dao.habilidades()) filtroHabilidade.addItem(habilidade);
+        } catch (SQLException error) { mostrarErro(error); }
     }
 
     // ---------------------------------------------------------------- Consultas
@@ -260,6 +351,12 @@ public class DashboardFrame extends JFrame {
     }
 
     private void mostrarErro(Exception error) {
-        JOptionPane.showMessageDialog(this, error.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        String message = error.getMessage();
+        if (error instanceof SQLException sql) {
+            System.err.println("Falha no dashboard: SQLState=" + sql.getSQLState()
+                    + ", codigo=" + sql.getErrorCode() + ", detalhe=" + sql.getMessage());
+            message = "Não foi possível consultar o banco. Confira a conexão e os objetos SQL.";
+        }
+        JOptionPane.showMessageDialog(this, message, "Erro", JOptionPane.ERROR_MESSAGE);
     }
 }

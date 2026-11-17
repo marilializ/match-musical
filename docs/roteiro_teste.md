@@ -1,4 +1,6 @@
-Eu# Roteiro de teste ponta a ponta — Entrega 03
+# Roteiro de teste ponta a ponta — Entrega 03
+
+Este roteiro registra a base historica com apenas `01` + `02`. Para a Etapa 06, use [`roteiro_5_minutos_etapa06.md`](roteiro_5_minutos_etapa06.md) e [`../sql/08_verificacao_etapa06.sql`](../sql/08_verificacao_etapa06.sql): o complemento da carga muda as contagens de swipes, matches, mensagens e matches ativos.
 
 Use este roteiro no checkpoint de integracao e antes do envio. Cada integrante deve conseguir rodar tudo sozinho.
 

@@ -1,0 +1,24 @@
+/* Detalhes de um grupo: na sheet (celular/tablet) e no painel ao lado do deck (desktop amplo). */
+
+.sheet-group .sheet-handle { position: absolute; top: 0; left: 0; right: 0; z-index: 2; height: var(--size-header); }
+.sheet-group .sheet-grabber { background: rgba(255, 255, 255, 0.6); }
+.sheet-group .sheet-body { padding-top: var(--space-3); }
+
+.detail-cover {
+  position: relative; height: 200px;
+  margin: 0 calc(-1 * var(--space-2)) var(--space-4);
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  color: var(--on-card);
+}
+.detail-cover .monogram { top: var(--space-6); font-size: 6rem; }
+.detail-cover .card-info { gap: var(--space-1); }
+.detail-desc { margin-bottom: var(--space-2); font: var(--text-body); }
+.detail-actions { display: flex; justify-content: center; align-items: center; gap: var(--space-6); }
+.detail-actions .action { box-shadow: var(--shadow-sm); }
+.detail-note {
+  display: flex; align-items: center; justify-content: center; gap: var(--space-2);
+  min-height: var(--size-button);
+  font: var(--text-subhead); color: var(--color-label-2);
+}
+.detail-note .icon { width: 20px; height: 20px; color: var(--color-like-text); }

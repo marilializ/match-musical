@@ -1,0 +1,72 @@
+/*
+ * "Deu match!" — o único momento com mola expressiva (bounce) e coreografia:
+ * é a recompensa do app. Entra uma vez, curta (< 700 ms), e nunca bloqueia: os
+ * botões já funcionam enquanto a animação termina.
+ */
+
+dialog.celebration {
+  position: fixed; inset: 0;
+  width: 100%; height: 100%; max-width: none; max-height: none;
+  margin: 0; padding: 0; border: 0;
+  overflow: hidden;
+  color: #fff;
+  background: transparent;
+}
+dialog.celebration::backdrop { background: transparent; }
+.celebration-bg {
+  position: absolute; inset: 0;
+  background: var(--gradient-brand);
+  opacity: 0;
+  transition: opacity var(--dur-moderate) var(--ease);
+}
+.celebration-bg::after { content: ""; position: absolute; inset: 0; background: radial-gradient(80% 50% at 50% 35%, rgba(255, 255, 255, 0.28), transparent 70%); }
+.celebration.is-open .celebration-bg { opacity: 0.97; }
+.celebration.is-closing { opacity: 0; transition: opacity var(--dur-base) var(--ease); }
+
+.celebration-content {
+  position: relative; height: 100%;
+  max-width: var(--size-narrow); margin: 0 auto;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-6);
+  padding: calc(env(safe-area-inset-top) + var(--space-8)) var(--space-6) calc(env(safe-area-inset-bottom) + var(--space-8));
+  text-align: center;
+}
+.celebration-avatars { position: relative; display: flex; align-items: center; justify-content: center; height: 136px; }
+.celebration-avatars .avatar { width: 120px; height: 120px; font-size: 2.75rem; box-shadow: 0 0 0 4px #fff, var(--shadow-lg); }
+.celebration-avatars .avatar:first-child { margin-right: calc(-1 * var(--space-4)); transform: rotate(-8deg); }
+.celebration-avatars .avatar:last-child { margin-left: calc(-1 * var(--space-4)); transform: rotate(8deg); }
+.celebration-heart {
+  position: absolute; left: 50%; bottom: var(--space-1); z-index: 2;
+  width: var(--size-hit); height: var(--size-hit);
+  margin-left: calc(var(--size-hit) / -2);
+  display: grid; place-items: center;
+  border-radius: var(--radius-pill);
+  background: #fff; color: var(--color-accent);
+  box-shadow: var(--shadow-md);
+}
+.celebration-title { font: var(--text-display); letter-spacing: var(--tracking-display); }
+.celebration-text { margin-top: calc(-1 * var(--space-4)); font: var(--text-body); color: rgba(255, 255, 255, 0.9); }
+.celebration-buttons { display: grid; gap: var(--space-3); width: 100%; max-width: 320px; margin-top: var(--space-4); }
+
+.celebration .celebration-avatars .avatar,
+.celebration .celebration-heart,
+.celebration .celebration-title,
+.celebration .celebration-text,
+.celebration .celebration-buttons { opacity: 0; }
+.celebration.is-open .celebration-avatars .avatar:first-child { animation: from-left 600ms var(--spring-bouncy) forwards; }
+.celebration.is-open .celebration-avatars .avatar:last-child { animation: from-right 600ms var(--spring-bouncy) forwards; }
+.celebration.is-open .celebration-heart { animation: pop var(--spring-bouncy-duration) var(--spring-bouncy) 200ms forwards; }
+.celebration.is-open .celebration-title { animation: pop var(--spring-bouncy-duration) var(--spring-bouncy) 80ms forwards; }
+.celebration.is-open .celebration-text,
+.celebration.is-open .celebration-buttons { animation: rise var(--dur-moderate) var(--ease-out) 260ms forwards; }
+
+@keyframes from-left { from { opacity: 0; transform: translateX(-64px) rotate(-20deg); } to { opacity: 1; transform: rotate(-8deg); } }
+@keyframes from-right { from { opacity: 0; transform: translateX(64px) rotate(20deg); } to { opacity: 1; transform: rotate(8deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .celebration.is-open .celebration-avatars .avatar:first-child,
+  .celebration.is-open .celebration-avatars .avatar:last-child,
+  .celebration.is-open .celebration-heart,
+  .celebration.is-open .celebration-title,
+  .celebration.is-open .celebration-text,
+  .celebration.is-open .celebration-buttons { animation: fade-in var(--dur-base) var(--ease) forwards; }
+}

@@ -1,0 +1,17 @@
+/* Estado vazio: o que vai aqui + uma ação. Nada de parágrafo explicativo. */
+
+.empty {
+  display: grid; justify-items: center; gap: var(--space-3);
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+}
+.empty-icon {
+  width: var(--size-avatar-md); height: var(--size-avatar-md);
+  display: grid; place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-fill); color: var(--color-label-2);
+}
+.empty-icon .icon { width: 32px; height: 32px; }
+.empty h2 { font: var(--text-title-3); }
+.empty p { max-width: 280px; font: var(--text-subhead); color: var(--color-label-2); }
+.empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin-top: var(--space-2); }

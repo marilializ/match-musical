@@ -1,0 +1,24 @@
+/* Sheet de um match: cabeçalho, entrar no grupo e histórico. */
+
+.match-head { display: grid; justify-items: center; gap: var(--space-2); padding: 0 0 var(--space-6); text-align: center; }
+.match-head h2 { margin-top: var(--space-2); font: var(--text-title-2); letter-spacing: var(--tracking-tight); }
+.match-head p { font: var(--text-subhead); color: var(--color-label-2); }
+
+.convert { display: grid; gap: var(--space-3); }
+.convert-done { display: grid; justify-items: center; gap: var(--space-3); padding: var(--space-4) 0; text-align: center; }
+.convert-done p { font: var(--text-headline); }
+.check-badge {
+  width: var(--size-avatar-md); height: var(--size-avatar-md);
+  display: grid; place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-like); color: #fff;
+}
+.check-badge .icon { width: 36px; height: 36px; stroke-width: 3; }
+/* Confirmação de uma ação importante: o selo surge e o check se desenha */
+.check-badge.is-new { animation: pop var(--spring-bouncy-duration) var(--spring-bouncy); }
+.check-badge.is-new .icon path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: draw 350ms var(--ease-out) 150ms forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .check-badge.is-new { animation: none; }
+  .check-badge.is-new .icon path { animation: none; stroke-dashoffset: 0; }
+}

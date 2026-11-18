@@ -1,0 +1,14 @@
+/*
+ * Linguagem visual da marca, compartilhada: sulcos de vinil sobre o gradiente.
+ * Aparece no card do grupo, na capa dos detalhes e na capa do perfil.
+ * O elemento precisa ser posicionado e ter overflow: hidden.
+ */
+.vinyl::before {
+  content: ""; position: absolute;
+  width: 150%; aspect-ratio: 1; right: -70%; top: -28%;
+  border-radius: 50%;
+  background: repeating-radial-gradient(circle, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 8px);
+  -webkit-mask: radial-gradient(circle, #000 25%, transparent 70%); mask: radial-gradient(circle, #000 25%, transparent 70%);
+  pointer-events: none;
+}
+.vinyl-wide::before { width: 90%; right: -30%; top: -110%; } /* para capas largas e baixas */

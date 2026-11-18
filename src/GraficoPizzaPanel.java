@@ -10,9 +10,11 @@ import javax.swing.JPanel;
 /** Distribuicao percentual de decisoes, recalculada com dados consultados no banco. */
 public class GraficoPizzaPanel extends JPanel {
     private static final Color[] COLORS = {new Color(0x2a78d6), new Color(0xeb6834), new Color(0x8c63bb)};
+    private final String titulo;
     private List<String> labels = List.of();
     private List<Integer> counts = List.of();
-    public GraficoPizzaPanel() { setPreferredSize(new Dimension(400, 260)); setToolTipText(""); }
+    public GraficoPizzaPanel() { this("Swipes por decisão"); }
+    public GraficoPizzaPanel(String titulo) { this.titulo = titulo; setPreferredSize(new Dimension(400, 260)); setToolTipText(""); }
     public void setDados(List<String> labels, List<Integer> counts) {
         this.labels = List.copyOf(labels); this.counts = List.copyOf(counts); repaint();
     }
@@ -20,7 +22,9 @@ public class GraficoPizzaPanel extends JPanel {
         super.paintComponent(graphics);
         Graphics2D g = (Graphics2D) graphics.create();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g.drawString("Swipes por decisão", 16, 24);
+        g.setFont(getFont().deriveFont(java.awt.Font.BOLD, 14f));
+        g.drawString(titulo, 16, 28);
+        g.setFont(getFont());
         int total = counts.stream().mapToInt(Integer::intValue).sum();
         if (total == 0) { g.drawString("Sem swipes no período.", 16, 55); g.dispose(); return; }
         int x = 20, y = 48, d = Math.min(170, getHeight() - 65);

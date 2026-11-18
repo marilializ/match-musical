@@ -17,6 +17,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 /**
  * Interface web local do SYNC. Escuta apenas em 127.0.0.1.
@@ -28,6 +31,9 @@ public final class WebMain {
     private static final int PORT = Integer.parseInt(System.getenv().getOrDefault("SYNC_WEB_PORT", "8080"));
     private static final ViewsFuncoesDAO VIEWS_FUNCOES = new ViewsFuncoesDAO();
     private static final ProcedimentosTriggersDAO PROCEDIMENTOS_TRIGGERS = new ProcedimentosTriggersDAO();
+    private static final DashboardDAO DASHBOARD = new DashboardDAO();
+    private static final DateTimeFormatter DATA_HORA_BR = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter DATA_BR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final List<String> SITUACOES_MATCH = List.of("Ativo", "Encerrado", "Convertido", "Pendente");
     private static final List<String> NIVEIS =
             List.of("Iniciante", "Basico", "Intermediario", "Avancado", "Profissional");
@@ -48,6 +54,9 @@ public final class WebMain {
         server.createContext("/api/vacancies/recommended", WebMain::recommendedVacancies);
         server.createContext("/api/groups/members", WebMain::groupMembers);
         server.createContext("/api/matches/log", WebMain::matchLogFiltered);
+        server.createContext("/api/dashboard", WebMain::dashboard);
+        server.createContext("/api/consultas", WebMain::listarConsultas);
+        server.createContext("/api/consultas/executar", WebMain::executarConsulta);
         server.createContext("/", WebMain::staticFile);
         server.setExecutor(Executors.newFixedThreadPool(4));
         server.start();
@@ -362,6 +371,198 @@ public final class WebMain {
         }
     }
 
+    // ------------------------------------------------------------ Painel (dashboard na web)
+
+    /**
+     * Dashboard da Etapa 6 na interface web: o mesmo DashboardDAO do Swing
+     * (mesmos SELECTs), devolvido em JSON. Parametros opcionais: inicio e fim
+     * (AAAA-MM-DD), categoria (grafico 1), habilidade (2), situacao (5) e
+     * instrumento (6, id). Sem filtro = tudo.
+     */
+    private static void dashboard(HttpExchange exchange) throws IOException {
+        if (!"GET".equals(exchange.getRequestMethod())) {
+            sendJson(exchange, 405, map("error", "Método não permitido."));
+            return;
+        }
+        Map<String, String> query;
+        LocalDate inicio, fim;
+        Integer instrumento;
+        try {
+            query = form(exchange.getRequestURI().getRawQuery());
+            inicio = dataOuNulo(query.get("inicio"));
+            fim = dataOuNulo(query.get("fim"));
+            instrumento = blankToNull(query.get("instrumento")) == null ? null : Integer.valueOf(query.get("instrumento").trim());
+        } catch (IllegalArgumentException | DateTimeParseException error) {
+            sendJson(exchange, 400, map("error", "Filtro inválido. Use datas no formato AAAA-MM-DD."));
+            return;
+        }
+        if (inicio != null && fim != null && fim.isBefore(inicio)) {
+            sendJson(exchange, 400, map("error", "A data final deve ser igual ou posterior à inicial."));
+            return;
+        }
+        String categoria = textoCurto(query.get("categoria"));
+        String habilidade = textoCurto(query.get("habilidade"));
+        String situacao = textoCurto(query.get("situacao"));
+        try {
+            DashboardDAO.Painel painel = DASHBOARD.painel(inicio, fim);
+            Map<String, Object> indicadores = map(
+                    "musicos", painel.musicos(), "grupos", painel.grupos(), "vagasAbertas", painel.vagasAbertas(),
+                    "matchesNoPeriodo", painel.matchesNoPeriodo(), "matchesAtivos", painel.matchesAtivos(),
+                    "matchesConvertidos", painel.matchesConvertidos(),
+                    "percentualConvertidos", painel.percentualConvertidos(),
+                    "mediaMensagens", painel.mediaMensagensPorMatch(),
+                    "taxaMediaRetribuicao", painel.taxaMediaRetribuicao());
+
+            List<Map<String, Object>> niveis = new ArrayList<>();
+            for (Object[] linha : DASHBOARD.niveisPorCategoria(categoria).linhas()) {
+                niveis.add(map("nivel", linha[0], "qtd", linha[1]));
+            }
+            List<Map<String, Object>> instrumentos = new ArrayList<>();
+            for (Object[] linha : DASHBOARD.instrumentosPorHabilidade(habilidade).linhas()) {
+                if (((Number) linha[1]).intValue() == 0) continue;
+                instrumentos.add(map("instrumento", linha[0], "musicos", linha[1], "mediaAnos", linha[2]));
+            }
+            List<Map<String, Object>> decisoes = new ArrayList<>();
+            for (Object[] linha : DASHBOARD.decisoesPorPeriodo(inicio, fim).linhas()) {
+                decisoes.add(map("decisao", linha[0], "qtd", linha[1]));
+            }
+            List<Map<String, Object>> semanas = new ArrayList<>();
+            for (DashboardDAO.Semana semana : DASHBOARD.atividadeSemanal(inicio, fim)) {
+                semanas.add(map("inicio", semana.inicio().toString(), "swipes", semana.swipes(), "matches", semana.matches()));
+            }
+            DashboardDAO.Distribuicao distribuicao = DASHBOARD.mensagensPorMatch(situacao, inicio, fim);
+            List<Map<String, Object>> frequencias = new ArrayList<>();
+            for (int[] faixa : distribuicao.frequencias()) frequencias.add(map("valor", faixa[0], "qtd", faixa[1]));
+            List<Map<String, Object>> pontos = new ArrayList<>();
+            for (DashboardDAO.PontoMusico ponto : DASHBOARD.instrumentosVersusExperiencia(instrumento)) {
+                pontos.add(map("id", ponto.id(), "nome", ponto.nome(), "instrumentos", ponto.instrumentos(),
+                        "mediaAnos", ponto.mediaAnos()));
+            }
+            List<Map<String, Object>> opcoesInstrumento = new ArrayList<>();
+            for (DashboardDAO.Opcao opcao : DASHBOARD.instrumentos()) opcoesInstrumento.add(map("id", opcao.id(), "nome", opcao.nome()));
+
+            sendJson(exchange, 200, map(
+                    "indicadores", indicadores,
+                    "niveis", niveis,
+                    "instrumentos", instrumentos,
+                    "decisoes", decisoes,
+                    "semanas", semanas,
+                    "mensagens", map("frequencias", frequencias, "n", distribuicao.n(), "media", distribuicao.media(),
+                            "mediana", distribuicao.mediana(), "modas", distribuicao.modas(),
+                            "variancia", distribuicao.variancia(), "desvioPadrao", distribuicao.desvioPadrao()),
+                    "dispersao", map("pontos", pontos,
+                            "pearson", DASHBOARD.pearsonInstrumentosExperiencia(instrumento)),
+                    "filtros", map("categorias", DASHBOARD.categorias(), "habilidades", DASHBOARD.habilidades(),
+                            "situacoes", DASHBOARD.situacoesMatch(), "instrumentos", opcoesInstrumento)));
+        } catch (SQLException error) {
+            objectError(exchange, error, "carregar o painel");
+        }
+    }
+
+    /** As 12 consultas (Etapas 3 e 4): titulo, pergunta, parametro, destaque e SQL. */
+    private static void listarConsultas(HttpExchange exchange) throws IOException {
+        if (!"GET".equals(exchange.getRequestMethod())) {
+            sendJson(exchange, 405, map("error", "Método não permitido."));
+            return;
+        }
+        List<Map<String, Object>> consultas = new ArrayList<>();
+        for (ConsultaSQL consulta : ConsultaSQL.TODAS) {
+            consultas.add(map("numero", consulta.numero(), "origem", consulta.origem(), "titulo", consulta.titulo(),
+                    "pergunta", consulta.pergunta(), "parametro", consulta.parametro().name(),
+                    "rotulo", consulta.parametro().rotulo, "destaque", consulta.colunaDestaque(),
+                    "sql", consulta.sql().strip()));
+        }
+        try {
+            List<Map<String, Object>> instrumentos = new ArrayList<>();
+            for (DashboardDAO.Opcao opcao : DASHBOARD.instrumentos()) instrumentos.add(map("id", opcao.id(), "nome", opcao.nome()));
+            sendJson(exchange, 200, map("consultas", consultas, "opcoes", map(
+                    "categorias", DASHBOARD.categorias(), "instrumentos", instrumentos,
+                    "diagnosticos", ConsultaSQL.DIAGNOSTICOS)));
+        } catch (SQLException error) {
+            objectError(exchange, error, "carregar as consultas");
+        }
+    }
+
+    /**
+     * Executa uma consulta: numero (1 a 12) e valor do parametro, se houver.
+     * O valor vai sempre por PreparedStatement (DashboardDAO.executar).
+     */
+    private static void executarConsulta(HttpExchange exchange) throws IOException {
+        if (!"GET".equals(exchange.getRequestMethod())) {
+            sendJson(exchange, 405, map("error", "Método não permitido."));
+            return;
+        }
+        Map<String, String> query;
+        try {
+            query = form(exchange.getRequestURI().getRawQuery());
+        } catch (IllegalArgumentException error) {
+            sendJson(exchange, 400, map("error", "Parâmetro inválido."));
+            return;
+        }
+        int numero = integer(query.get("numero"), 0);
+        if (numero < 1 || numero > ConsultaSQL.TODAS.size()) {
+            sendJson(exchange, 400, map("error", "Consulta inexistente."));
+            return;
+        }
+        ConsultaSQL consulta = ConsultaSQL.numero(numero);
+        String bruto = textoCurto(query.get("valor"));
+        Object valor;
+        switch (consulta.parametro()) {
+            case MUSICO, INSTRUMENTO -> {
+                if (bruto != null && integer(bruto, 0) <= 0) {
+                    sendJson(exchange, 400, map("error", "Valor inválido para " + consulta.parametro().rotulo + "."));
+                    return;
+                }
+                valor = bruto == null ? null : (Object) Long.valueOf(bruto);
+            }
+            case DIAGNOSTICO -> {
+                if (bruto != null && !ConsultaSQL.DIAGNOSTICOS.contains(bruto)) {
+                    sendJson(exchange, 400, map("error", "Diagnóstico inválido."));
+                    return;
+                }
+                valor = bruto;
+            }
+            case CATEGORIA -> valor = bruto;
+            default -> valor = null;
+        }
+        if (consulta.usaMusico() && valor == null) {
+            sendJson(exchange, 400, map("error", "Escolha um músico."));
+            return;
+        }
+        try {
+            DashboardDAO.Resultado resultado = DASHBOARD.executar(consulta, valor);
+            List<List<Object>> linhas = new ArrayList<>();
+            for (Object[] linha : resultado.linhas()) {
+                List<Object> celulas = new ArrayList<>();
+                for (Object celula : linha) celulas.add(celulaJson(celula));
+                linhas.add(celulas);
+            }
+            sendJson(exchange, 200, map("colunas", resultado.colunas(), "linhas", linhas));
+        } catch (SQLException error) {
+            objectError(exchange, error, "executar a consulta");
+        }
+    }
+
+    /** Datas e horas do banco viram texto no padrao brasileiro; o resto passa como esta. */
+    private static Object celulaJson(Object celula) {
+        if (celula instanceof java.sql.Timestamp t) return t.toLocalDateTime().format(DATA_HORA_BR);
+        if (celula instanceof java.time.LocalDateTime t) return t.format(DATA_HORA_BR);
+        if (celula instanceof java.sql.Date d) return d.toLocalDate().format(DATA_BR);
+        if (celula instanceof LocalDate d) return d.format(DATA_BR);
+        if (celula instanceof Number || celula instanceof Boolean || celula == null) return celula;
+        return String.valueOf(celula);
+    }
+
+    private static LocalDate dataOuNulo(String texto) {
+        return blankToNull(texto) == null ? null : LocalDate.parse(texto.trim());
+    }
+
+    /** Texto de filtro: vazio vira null (sem filtro) e mais de 100 caracteres e cortado. */
+    private static String textoCurto(String texto) {
+        String valor = blankToNull(texto);
+        return valor == null ? null : valor.substring(0, Math.min(valor.length(), 100));
+    }
+
     /** Traduz a falta de view (1146) ou funcao (1305) em aviso para a secao. */
     private static void objectError(HttpExchange exchange, SQLException error, String action) throws IOException {
         if (error.getErrorCode() == 1146 || error.getErrorCode() == 1305) {
@@ -611,6 +812,7 @@ public final class WebMain {
 
     private static String json(Object value) {
         if (value == null) return "null";
+        if (value instanceof Double d && (d.isNaN() || d.isInfinite())) return "null";
         if (value instanceof Number || value instanceof Boolean) return String.valueOf(value);
         if (value instanceof Map<?, ?> map) {
             List<String> parts = new ArrayList<>();

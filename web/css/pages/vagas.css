@@ -1,0 +1,9 @@
+/* Vagas: resumo das recomendações no topo da lista. */
+
+.summary { display: grid; gap: var(--space-1); margin-bottom: var(--space-4); }
+.summary-main { font: var(--text-title-3); }
+.summary-main strong { font-family: var(--font-display); color: var(--color-accent-text); }
+.summary-sub { font: var(--text-subhead); color: var(--color-label-2); }
+.summary-skeleton { height: 48px; margin-bottom: var(--space-4); border-radius: var(--radius-md); background: var(--color-fill); animation: pulse 1.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) { .summary-skeleton { animation: none; } }

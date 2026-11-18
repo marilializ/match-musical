@@ -1,0 +1,118 @@
+/*
+ * Perfil — identidade de músico, não tela de ajustes.
+ * Capa com a linguagem da marca (gradiente + vinil), nome grande na fonte arredondada,
+ * instrumento e nível (equalizador), uma frase sua, números em destaque e seus matches.
+ * O que é técnico (banco, sincronizar) fica num bloco discreto no fim.
+ */
+
+/* ---------- Capa e identidade ---------- */
+.profile-hero { position: relative; }
+.profile-cover {
+  position: relative; overflow: hidden;
+  height: var(--size-cover);
+  border-radius: var(--radius-2xl);
+  background:
+    radial-gradient(120% 140% at 0% 0%, var(--brand-orange) 0%, transparent 55%),
+    radial-gradient(100% 120% at 100% 0%, var(--brand-pink) 0%, transparent 60%),
+    linear-gradient(160deg, var(--brand-wine) 0%, var(--brand-night) 90%);
+}
+.profile-switch {
+  position: absolute; top: var(--space-3); right: var(--space-3);
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  height: 36px; padding: 0 var(--space-4) 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  font: var(--text-subhead); font-weight: var(--weight-semibold);
+  color: #fff;
+  background: rgba(0, 0, 0, 0.28);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  transition: transform var(--dur-instant) var(--ease-out), background-color var(--dur-fast) var(--ease);
+}
+.profile-switch .icon { width: 20px; height: 20px; }
+.profile-switch:active { transform: scale(var(--press-scale)); }
+
+.profile-id {
+  position: relative;
+  display: grid; justify-items: start; gap: var(--space-2);
+  margin-top: calc(var(--size-avatar-lg) / -2); /* o avatar "pisa" na capa */
+  padding: 0 var(--space-4);
+}
+.profile-name { margin-top: var(--space-2); font: var(--text-hero); letter-spacing: var(--tracking-tight); text-wrap: balance; }
+.profile-identity { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); }
+.profile-level { display: inline-flex; align-items: center; gap: var(--space-2); font: var(--text-subhead); font-weight: var(--weight-semibold); color: var(--color-label-2); }
+
+/* ---------- Sua frase ---------- */
+.profile-bio {
+  position: relative;
+  margin: var(--space-8) 0 0;
+  padding: 0 var(--space-4) 0 var(--space-16);
+  font: var(--text-title-3); font-weight: var(--weight-medium);
+  text-wrap: pretty;
+}
+.profile-bio::before {
+  content: "“";
+  position: absolute; left: var(--space-3); top: calc(-1 * var(--space-4));
+  font: var(--weight-heavy) 4.5rem/1 var(--font-display);
+  color: var(--color-accent-text);
+}
+
+/* ---------- Números ---------- */
+.profile-stats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-top: var(--space-8); }
+.stat-card {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-4);
+  min-height: 136px; padding: var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+}
+.stat-card.is-brand { background: var(--gradient-brand); color: #fff; transition: transform var(--dur-instant) var(--ease-out); }
+.stat-card.is-brand:active { transform: scale(var(--press-scale)); }
+.stat-number { font: var(--text-stat); font-variant-numeric: tabular-nums; }
+.stat-caption { font: var(--text-subhead); font-weight: var(--weight-semibold); color: var(--color-label-2); }
+.stat-card.is-brand .stat-caption { color: rgba(255, 255, 255, 0.88); }
+
+/* ---------- Matches recentes ---------- */
+.profile-section { margin-top: var(--space-8); }
+.profile-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.profile-section .section-title { margin: 0 0 var(--space-3); }
+.match-strip {
+  display: flex; gap: var(--space-4);
+  margin: 0 calc(-1 * var(--space-4)); padding: 0 var(--space-4) var(--space-2);
+  overflow-x: auto; scrollbar-width: none;
+}
+.match-strip::-webkit-scrollbar { display: none; }
+.match-strip-item {
+  width: var(--size-avatar-md);
+  display: grid; justify-items: center; gap: var(--space-2);
+  text-align: center;
+  font: var(--text-caption); color: var(--color-label);
+  transition: transform var(--dur-instant) var(--ease-out);
+}
+.match-strip-item span:last-child { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.match-strip-item:active { transform: scale(var(--press-scale)); }
+.profile-empty { font: var(--text-subhead); color: var(--color-label-2); }
+.profile-empty a { font-weight: var(--weight-semibold); color: var(--color-accent-text); }
+
+/* ---------- Conta e banco (discreto, no fim) ---------- */
+.account-card {
+  display: grid; justify-items: start; gap: var(--space-3);
+  margin-top: var(--space-10); padding: var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+}
+.account-status { display: flex; align-items: center; gap: var(--space-2); font: var(--text-headline); }
+.account-card .btn > span { display: inline-flex; align-items: center; gap: var(--space-2); }
+.account-card .btn .icon { width: 20px; height: 20px; }
+.account-card .footnote { padding: 0; }
+
+@media (hover: hover) {
+  .profile-switch:hover { background: rgba(0, 0, 0, 0.4); }
+  .stat-card.is-brand:hover { filter: brightness(1.05); }
+  .match-strip-item:hover .avatar { box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent-text); }
+}
+
+@media (min-width: 768px) {
+  .profile-cover { height: calc(var(--size-cover) + var(--space-8)); }
+  .profile-id { padding: 0 var(--space-6); }
+  .profile-bio { padding-right: var(--space-6); }
+  .match-strip { flex-wrap: wrap; margin: 0; padding: 0; overflow: visible; }
+}

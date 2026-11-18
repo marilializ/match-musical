@@ -3,15 +3,52 @@
 -- Conceito: ANTI JOIN (LEFT JOIN + IS NULL)
 -- Pergunta que responde: "Quais músicos não participam
 -- de nenhum grupo musical?"
+-- (no Java, a categoria principal vira um filtro opcional ?)
 -- =====================================================
 SELECT
     m.id_usuario AS id_musico,
-    m.nome
+    m.nome,
+    m.categoria_principal
 FROM Musico m
 LEFT JOIN Participa p
     ON p.id_musico = m.id_usuario
 WHERE p.id_musico IS NULL
 ORDER BY m.id_usuario;
+
+
+-- =====================================================
+-- CONSULTA 2: Músicos com experiência acima da média
+--             no próprio instrumento
+-- Conceito: SUBCONSULTA CORRELACIONADA no WHERE (a média é
+--           recalculada para o instrumento de cada linha de
+--           Toca) + subconsulta escalar correlacionada no SELECT
+-- Pergunta que responde: "Quem tem mais anos de experiência
+-- em um instrumento do que a média de quem toca esse mesmo
+-- instrumento?"
+-- (no Java, o instrumento vira um filtro opcional ?)
+-- Escrita na Etapa 6 para completar as 4 consultas da Etapa 4
+-- (anti join, full outer join e 2 subconsultas): o script
+-- tinha só as consultas 1 e 3.
+-- =====================================================
+SELECT
+    m.id_usuario        AS id_musico,
+    m.nome,
+    i.nome              AS instrumento,
+    t.tempo_experiencia AS anos_experiencia,
+    (SELECT ROUND(AVG(t2.tempo_experiencia), 1)
+       FROM Toca t2
+      WHERE t2.id_instrumento = t.id_instrumento) AS media_do_instrumento
+FROM Toca t
+JOIN Musico m
+    ON m.id_usuario = t.id_musico
+JOIN Instrumento i
+    ON i.id_instrumento = t.id_instrumento
+WHERE t.tempo_experiencia > (
+    SELECT AVG(t3.tempo_experiencia)
+    FROM Toca t3
+    WHERE t3.id_instrumento = t.id_instrumento
+)
+ORDER BY i.nome, anos_experiencia DESC, m.nome;
 
 
 -- =====================================================

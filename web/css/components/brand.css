@@ -1,0 +1,14 @@
+/* Marca: ícone de onda + "sync". No header do celular e no topo da sidebar. */
+
+.wordmark {
+  display: flex; align-items: center; gap: var(--space-2);
+  font: var(--text-brand);
+  letter-spacing: var(--tracking-display);
+}
+.logo-mark {
+  width: var(--size-chip); height: var(--size-chip);
+  display: grid; place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--gradient-brand); color: #fff;
+}
+.logo-mark .icon { width: 20px; height: 20px; stroke-width: 2.5; }

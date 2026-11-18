@@ -81,18 +81,24 @@ mvn -q compile exec:java "-Dexec.mainClass=WebMain"    # abrir http://127.0.0.1:
 
 **Tarefa 4 — views e funcoes**
 
-- [ ] **Vagas → Recomendadas para voce** (`vw_recomendacao_vagas` + `fn_compatibilidade_vaga`): lista vagas com generos em comum e a compatibilidade de cada uma. Filtrar por funcao (ex.: `gui`) e por nivel muda a lista; os 3 indicadores acima dela acompanham o perfil escolhido no topo.
-- [ ] **Descobrir → detalhes do grupo → Integrantes** (`vw_integrantes_grupo`): mostra os integrantes ativos com funcao e data de entrada.
-- [ ] **Perfil** (`fn_taxa_retribuicao_usuario`): mostra o percentual "dos seus likes receberam like de volta".
+- [ ] **Vagas → Para voce** (`vw_recomendacao_vagas` + `fn_compatibilidade_vaga`): lista vagas com generos em comum e o selo *Combina* / *Nivel acima*. A busca (ex.: `gui`) e os chips de nivel mudam a lista; o resumo acima dela (vagas que combinam, quantas o seu nivel atende, total aberto) acompanha o perfil escolhido em **Perfil → Trocar perfil**.
+- [ ] **Descobrir → Ver mais → Integrantes** (`vw_integrantes_grupo`): mostra os integrantes ativos com funcao e data de entrada. No celular abre de baixo; a partir de 768 px os detalhes saem de dentro do card, colados a direita.
+- [ ] **Perfil** (`fn_taxa_retribuicao_usuario`): o anel mostra o percentual *das suas curtidas voltaram*.
 - [ ] Nenhum nome de view ou funcao aparece na tela.
+
+**Pessoas 3 e 6 — consultas e dashboard (Swing)**
+
+- [ ] **Dashboard → Consultas**: o combo lista 12 consultas (1 a 8 da Etapa 3, 9 a 12 da Etapa 4). Na 9 (anti join), escolher uma categoria principal muda a lista; na 10 (subconsulta correlacionada), escolher um instrumento; na 12 (auditoria), filtrar *Consistente* e conferir a cor verde de cada linha.
+- [ ] **Dashboard → Visao geral**: 7 cartoes (6 indicadores + taxa media de retribuicao) e 6 graficos numerados, alem do de generos. Preencher o periodo muda os cartoes de match e os graficos 3, 4 e 5; trocar situacao do match muda o histograma e as medidas; trocar instrumento muda a dispersao e o r de Pearson.
+- [ ] **Aceitacao:** inserir um swipe em **Swipes e Matches** e, no dashboard, clicar em *Atualizar dados*: a pizza (3) e a linha semanal (4) contam o swipe novo.
 
 **Tarefa 5 — procedimentos e triggers**
 
-- [ ] **Match pelo trigger** (`tr_swipe_cria_match`): com o perfil Pedro Guitar (#2), dar Like no grupo #64 em **Descobrir** → aviso "Deu match com …" e, em **Matches**, o card novo com o selo *Novo* e a etiqueta *Ativa*.
-- [ ] **Conversao** (`sp_converter_match_em_participacao`): nesse card, informar a funcao (ex.: `Guitarrista`) → **Entrar no grupo** → o card passa para *Convertida*.
-- [ ] **Log** (`tr_match_log_situacao`): em **Matches → Historico das conexoes** aparece "Ativa → Convertida" para esse grupo. Os filtros de conexao e de situacao mudam a lista na hora; o historico so mostra conexoes do perfil escolhido.
-- [ ] **Erro do procedimento na tela:** abrir **Matches** em duas abas com o mesmo perfil e um match *Ativa* com grupo. Converter na primeira aba; na segunda, sem recarregar, tentar converter o mesmo match → aviso "So um match Ativo pode ser convertido…".
-- [ ] **Sincronizacao** (`sp_sincronizar_situacao_grupos`): em **Vagas → Sincronizar grupos** → aviso com grupos atualizados e vagas fechadas. Clicar de novo → "0 grupo(s) atualizado(s), 0 vaga(s) fechada(s)".
+- [ ] **Match pelo trigger** (`tr_swipe_cria_match`): com o perfil Pedro Guitar (#2), curtir o grupo #64 em **Descobrir** (deslizar para a direita, botao ♥ ou tecla →) → tela *Deu match!*; em **Matches → Conexoes**, a linha nova com o selo *Novo* e o badge na aba Matches.
+- [ ] **Conversao** (`sp_converter_match_em_participacao`): tocar nesse match → a funcao ja vem preenchida com a categoria do perfil (ex.: `Guitarra`) → **Entrar no grupo** → a etiqueta passa para *No grupo*.
+- [ ] **Log** (`tr_match_log_situacao`): em **Matches → Historico** aparece "Ativo → No grupo" para esse grupo. Os chips de situacao filtram a lista na hora; o filtro por match fica na sheet do proprio match (secao *Historico*). O historico so mostra matches do perfil escolhido.
+- [ ] **Erro do procedimento na tela:** abrir **Matches** em duas abas com o mesmo perfil e um match *Ativo* com grupo. Converter na primeira aba; na segunda, sem recarregar, tentar converter o mesmo match → aviso "So um match Ativo pode ser convertido…" embaixo do campo.
+- [ ] **Sincronizacao** (`sp_sincronizar_situacao_grupos`): em **Perfil → Sincronizar grupos** → aviso com grupos atualizados e vagas fechadas. Tocar de novo → "0 grupos atualizados · 0 vagas fechadas".
 - [ ] Rodar o reset de novo no fim, para voltar o banco ao seed.
 
 ## 6. Antes do envio

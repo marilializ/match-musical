@@ -1,0 +1,74 @@
+/*
+ * Sheet sobre <dialog> nativo (foco preso, Esc fecha, fundo inerte).
+ *   compacto → sobe de baixo, com alça para arrastar e fechar
+ *   regular  → modal centralizado (como sheets no iPad/Mac), entra com escala + fade
+ */
+
+dialog.sheet {
+  position: fixed; inset: 0;
+  width: 100%; height: 100%; max-width: none; max-height: none;
+  margin: 0; padding: 0; border: 0;
+  overflow: hidden;
+  color: var(--color-label);
+  background: transparent;
+  transition: background-color var(--dur-moderate) var(--ease);
+}
+dialog.sheet::backdrop { background: transparent; }
+dialog.sheet.is-open { background: var(--color-scrim); }
+
+.sheet-panel {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  max-height: calc(100dvh - env(safe-area-inset-top) - var(--space-6));
+  display: flex; flex-direction: column;
+  border-radius: var(--radius-3xl) var(--radius-3xl) 0 0;
+  background: var(--color-surface-sheet);
+  box-shadow: var(--shadow-xl);
+  transform: translateY(100%);
+  transition: transform var(--dur-slow) var(--ease-drawer);
+}
+dialog.sheet.is-open .sheet-panel { transform: none; }
+dialog.sheet.is-closing .sheet-panel { transition-duration: 280ms; }
+
+.sheet-handle { flex: none; position: relative; touch-action: none; cursor: grab; }
+.sheet-grabber {
+  display: block; width: 36px; height: 4px; margin: var(--space-2) auto 0;
+  border-radius: var(--radius-xs); background: var(--color-label-3);
+}
+.sheet-head {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  min-height: var(--size-header); padding: 0 var(--space-2) 0 var(--space-5);
+}
+.sheet-head.is-bare { justify-content: flex-end; min-height: var(--size-hit); }
+.sheet-title { font: var(--text-title-2); letter-spacing: var(--tracking-tight); }
+
+.sheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 var(--space-5) var(--space-6); }
+.sheet-body:last-child { padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom)); }
+.sheet-foot { flex: none; padding: var(--space-3) var(--space-5) calc(var(--space-4) + env(safe-area-inset-bottom)); }
+.sheet .group { background: var(--color-surface-in-sheet); }
+.sheet .section-title:first-child { margin-top: 0; }
+
+@media (min-width: 768px) {
+  .sheet-panel {
+    top: 50%; left: 50%; right: auto; bottom: auto;
+    width: min(var(--size-sheet), calc(100vw - var(--space-16)));
+    max-height: min(85dvh, 800px);
+    border-radius: var(--radius-3xl);
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+    transition: transform var(--dur-moderate) var(--ease-out), opacity var(--dur-base) var(--ease);
+  }
+  dialog.sheet.is-open .sheet-panel { opacity: 1; transform: translate(-50%, -50%); }
+  dialog.sheet.is-closing .sheet-panel { transition-duration: var(--dur-base); }
+  .sheet-handle { cursor: default; }
+  .sheet-grabber { visibility: hidden; height: 0; margin: 0; }
+  .sheet-head { min-height: 64px; padding-top: var(--space-2); }
+  .sheet-body:last-child, .sheet-foot { padding-bottom: var(--space-6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-panel { opacity: 0; transform: none !important; transition: opacity var(--dur-base) var(--ease) !important; }
+  dialog.sheet.is-open .sheet-panel { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) and (min-width: 768px) {
+  .sheet-panel { transform: translate(-50%, -50%) !important; }
+}

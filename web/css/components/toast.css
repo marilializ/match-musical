@@ -1,0 +1,29 @@
+/* Aviso curto no topo. Usa popover para ficar acima de sheets abertas (top layer). */
+
+.toast {
+  position: fixed; inset: auto;
+  top: calc(env(safe-area-inset-top) + var(--space-3)); left: 50%;
+  margin: 0; border: 0;
+  max-width: min(calc(100vw - var(--space-8)), 440px);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-pill);
+  background: var(--color-toast); color: #fff;
+  -webkit-backdrop-filter: var(--material-blur); backdrop-filter: var(--material-blur);
+  box-shadow: var(--shadow-lg);
+  font: var(--text-subhead); font-weight: var(--weight-semibold);
+  text-align: center;
+  opacity: 0;
+  transform: translate(-50%, calc(-1 * var(--space-4))) scale(0.96);
+  transition: opacity var(--dur-base) var(--ease), transform var(--dur-moderate) var(--ease-out);
+  pointer-events: none;
+}
+.toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+@media (min-width: 768px) {
+  .toast { top: var(--space-6); left: calc(50% + var(--size-rail) / 2); }
+}
+@media (min-width: 1200px) {
+  .toast { left: calc(50% + var(--size-sidebar) / 2); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast { transform: translate(-50%, 0); }
+}

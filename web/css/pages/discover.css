@@ -1,0 +1,101 @@
+/*
+ * Descobrir — o primeiro contato com o app: só o card, os botões e o filtro.
+ *   compacto → deck ocupa a tela, botões embaixo, tab bar flutuando; "Ver mais" abre a sheet
+ *   regular  → card centralizado; "Ver mais" desliza um card de detalhes de dentro do principal
+ */
+
+.view-discover {
+  overflow: hidden; /* o card sai de cena pela borda da tela */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: calc(var(--size-tabbar) + var(--space-2) + env(safe-area-inset-bottom));
+}
+.discover-header {
+  flex: none;
+  height: var(--size-header);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 var(--space-2) 0 var(--space-4);
+}
+
+.discover-stage { flex: 1; min-height: 0; display: flex; }
+.discover-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.deck-area { position: relative; flex: 1; min-height: 0; padding: var(--space-1) var(--space-4) var(--space-3); }
+.deck { position: relative; height: 100%; }
+.deck-empty {
+  position: absolute; inset: 0;
+  display: grid; place-content: center;
+  animation: fade-in var(--dur-moderate) var(--ease-out);
+}
+.actions { flex: none; display: flex; justify-content: center; align-items: center; gap: var(--space-6); padding: var(--space-1) 0 var(--space-4); }
+
+.detail-panel { display: none; }
+
+@media (min-width: 768px) {
+  .view-discover { padding: 0; }
+  .discover-header { justify-content: flex-end; padding: var(--space-4) var(--space-8) 0; }
+  .discover-stage {
+    container-type: inline-size; /* card e painel se medem pelo palco (unidades cqw) */
+    align-items: center; justify-content: center;
+    padding: 0 var(--space-6) var(--space-6);
+  }
+  .discover-main {
+    /* o par aberto (card + painel) sempre cabe no palco */
+    --deck-w: min(var(--size-deck), 56cqw);
+    /* parte visível do painel; ele também precisa caber inteiro atrás do card quando fechado */
+    --panel-w: min(var(--size-panel), calc(100cqw - var(--deck-w)), calc(var(--deck-w) - 2 * var(--radius-2xl)));
+    flex: 0 0 var(--deck-w);
+    height: 100%; max-height: calc(var(--size-deck-height) + 120px);
+  }
+  .deck-area { padding: 0 0 var(--space-3); }
+  .actions { padding: var(--space-3) 0 0; }
+}
+
+/* ---------- Card de detalhes (regular) ----------
+ * Fechado, ele fica inteiro escondido DENTRO do card principal (atrás dele).
+ * Ao abrir, desliza para fora pela borda direita enquanto o par se recentraliza.
+ * O card principal mantém os cantos arredondados; o de detalhes tem o lado esquerdo
+ * reto e fica por baixo da borda do principal (na largura do raio), preenchendo o
+ * espaço atrás das curvas — as duas peças parecem conectadas, sem fresta.
+ * Tudo com transform (sem animar largura): fluido e interrompível no meio.
+ */
+@media (min-width: 768px) {
+  .discover-main { transition: transform var(--dur-slow) var(--ease-drawer); }
+  .discover-main.is-expanded { transform: translateX(calc(var(--panel-w) / -2)); }
+
+  .detail-panel {
+    display: block;
+    position: absolute; z-index: 0;   /* abaixo dos cards (z 10–40) */
+    top: 0; bottom: var(--space-3);   /* mesma altura do card */
+    left: calc(100% - var(--radius-2xl));              /* entra sob a curva do card principal */
+    width: calc(var(--panel-w) + var(--radius-2xl));
+    padding: var(--space-4) var(--space-5) var(--space-6) calc(var(--radius-2xl) + var(--space-5));
+    border-radius: 0 var(--radius-2xl) var(--radius-2xl) 0; /* reto do lado da junção */
+    background: var(--color-surface);
+    box-shadow: var(--shadow-lg);
+    overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+    visibility: hidden;
+    transform: translateX(-100%);     /* guardado atrás do card */
+    transition: transform var(--dur-slow) var(--ease-drawer), visibility 0s linear var(--dur-slow);
+  }
+  .discover-main.is-expanded .detail-panel {
+    visibility: visible;
+    transform: none;
+    transition: transform var(--dur-slow) var(--ease-drawer), visibility 0s;
+  }
+  /* o conteúdo aparece quando já há espaço para ler, e some primeiro ao fechar */
+  .detail-panel > * { opacity: 0; transition: opacity var(--dur-fast) var(--ease); }
+  .discover-main.is-expanded .detail-panel > * { opacity: 1; transition: opacity var(--dur-base) var(--ease) 180ms; }
+
+
+  .detail-panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-bottom: var(--space-3); }
+  .detail-panel-title { font: var(--text-title-3); }
+  .detail-panel .close-btn { margin-right: calc(-1 * var(--space-2)); }
+  .detail-panel .group { background: var(--color-bg); }
+  .detail-panel .section-title { font: var(--text-headline); margin: var(--space-5) 0 var(--space-2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck-empty { animation-duration: 1ms; }
+  /* sem deslizar: o card só troca de lugar e os detalhes aparecem com fade */
+  .discover-main, .discover-main.is-expanded { transition: none; }
+  .detail-panel, .discover-main.is-expanded .detail-panel { transform: none; transition: visibility 0s; }
+}

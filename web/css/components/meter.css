@@ -1,0 +1,36 @@
+/*
+ * Medidores com cara de música.
+ *   .level-meter  nível como barras de equalizador: quantas acendem = em que degrau você está
+ *   .ring         percentual como anel que se preenche (progresso se lê pelo COMPRIMENTO)
+ */
+
+.level-meter { display: inline-flex; align-items: flex-end; gap: var(--space-1); height: 20px; }
+.level-meter span { width: 4px; border-radius: var(--radius-pill); background: var(--color-fill-strong); }
+.level-meter span:nth-child(1) { height: 8px; }
+.level-meter span:nth-child(2) { height: 12px; }
+.level-meter span:nth-child(3) { height: 16px; }
+.level-meter span:nth-child(4) { height: 20px; }
+.level-meter span:nth-child(5) { height: 20px; }
+.level-meter span.is-on { background: var(--color-accent-text); }
+
+.ring { position: relative; width: var(--size-ring); height: var(--size-ring); flex: none; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 8; }
+.ring-track { stroke: var(--color-fill); }
+.ring-value {
+  stroke: var(--color-accent-text);
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  /* enche do zero até o valor quando aparece (o valor final está no style do elemento) */
+  animation: ring-fill 900ms var(--ease-out) both;
+}
+.ring-label {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font: var(--text-headline); font-family: var(--font-display); font-variant-numeric: tabular-nums;
+}
+@keyframes ring-fill { from { stroke-dashoffset: 100; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ring-value { animation: none; }
+}

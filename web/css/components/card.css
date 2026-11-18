@@ -1,0 +1,122 @@
+/*
+ * Card de grupo. A arte (gradiente + monograma + sulcos de vinil) é usada também na
+ * capa da sheet de detalhes. A posição do card é escrita pelo JS (transform), nunca
+ * por layout — mover com transform mantém o arrasto a 60/120 fps.
+ */
+
+.card {
+  position: absolute; inset: 0;
+  z-index: var(--z-card);
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  color: var(--on-card);
+  background: #15131C;
+  box-shadow: var(--shadow-lg);
+  touch-action: none;
+  user-select: none; -webkit-user-select: none;
+  cursor: grab;
+  transition: opacity var(--dur-base) var(--ease);
+}
+.card::after { /* fio de contorno: separa a pilha de cards do fundo escuro */
+  content: ""; position: absolute; inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+}
+.card.is-dragging { cursor: grabbing; }
+.card[data-depth="1"], .card[data-depth="2"] { box-shadow: var(--shadow-md); }
+.card[data-depth="2"] { opacity: 0; }
+.card.is-entering { animation: fade-in var(--dur-moderate) var(--ease-out); }
+.card:focus-visible { outline-offset: 4px; }
+
+.cover {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(120% 80% at 15% 5%, var(--c1) 0%, transparent 60%),
+    radial-gradient(90% 70% at 100% 35%, var(--c2) 0%, transparent 65%),
+    linear-gradient(170deg, var(--c3) 0%, #0B0A10 92%);
+}
+.cover::after { /* véu que garante contraste do texto */
+  content: ""; position: absolute; inset: 40% 0 0 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.78) 0%, rgba(0, 0, 0, 0.36) 55%, transparent 100%);
+}
+.monogram {
+  position: absolute; left: var(--space-5); top: var(--space-16);
+  font: var(--weight-heavy) 8rem/1 var(--font-display);
+  letter-spacing: -0.06em;
+  color: rgba(255, 255, 255, 0.16);
+}
+
+.card-top {
+  position: absolute; top: var(--space-4); left: var(--space-4); right: var(--space-4);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.glass-pill {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  height: 28px; padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  font: var(--text-caption);
+  color: var(--on-card);
+  background: var(--material-on-card);
+  -webkit-backdrop-filter: blur(12px) saturate(160%); backdrop-filter: blur(12px) saturate(160%);
+}
+.card-info { position: absolute; left: 0; right: 0; bottom: 0; display: grid; gap: var(--space-2); padding: var(--space-5); }
+.card-title-row { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-3); }
+.card-name { font: var(--text-title-1); letter-spacing: var(--tracking-tight); text-wrap: balance; }
+.card-meta { display: flex; align-items: center; gap: var(--space-1); font: var(--text-subhead); color: var(--on-card-2); }
+.card-meta .icon { width: 16px; height: 16px; }
+.card-tags { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.card-tags .glass-pill { background: rgba(255, 255, 255, 0.16); } /* sobre o véu escuro, vidro claro */
+
+/* "Saiba mais": só o ícone no celular; ícone + texto quando há espaço */
+.card-more {
+  flex: none;
+  min-width: var(--size-hit); height: var(--size-hit);
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  border-radius: var(--radius-pill);
+  font: var(--text-subhead); font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  color: var(--on-card);
+  background: rgba(255, 255, 255, 0.16); /* vidro claro: aparece sobre o véu escuro */
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  transition: transform var(--dur-instant) var(--ease-out), background-color var(--dur-fast) var(--ease);
+}
+.card-more .icon { width: 20px; height: 20px; }
+.card-more-label { display: none; }
+.card-more:active { transform: scale(var(--press-scale-strong)); }
+.card-more[aria-expanded="true"] { background: rgba(255, 255, 255, 0.28); }
+@media (min-width: 768px) {
+  .card-more { height: 36px; padding: 0 var(--space-4) 0 var(--space-3); }
+  .card-more-label { display: inline; }
+}
+@media (hover: hover) { .card-more:hover { background: rgba(255, 255, 255, 0.24); } }
+
+/* Carimbos: a opacidade acompanha o arrasto e mostra o que vai acontecer ao soltar */
+.stamp {
+  position: absolute; top: var(--space-12);
+  padding: 0 var(--space-3);
+  border: 4px solid currentColor;
+  border-radius: var(--radius-md);
+  font: var(--weight-heavy) 2rem/2.75rem var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  pointer-events: none;
+}
+.stamp-like { left: var(--space-6); color: var(--card-like); transform: rotate(-12deg); }
+.stamp-nope { right: var(--space-6); color: var(--card-nope); transform: rotate(12deg); }
+.stamp-super { left: 50%; top: auto; bottom: 40%; color: var(--card-super); transform: translateX(-50%) rotate(-6deg); }
+
+.skeleton-card {
+  position: absolute; inset: 0;
+  border-radius: var(--radius-2xl);
+  background: var(--color-fill);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card.is-entering { animation-duration: 1ms; }
+  .skeleton-card { animation: none; }
+}

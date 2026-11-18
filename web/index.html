@@ -3,56 +3,111 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#100f14">
-  <meta name="description" content="SYNC — encontre sua próxima conexão musical.">
-  <title>SYNC — Encontre sua sintonia</title>
-  <link rel="stylesheet" href="/styles.css">
-  <script src="/app.js" defer></script>
+  <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="SYNC — deslize para encontrar seu grupo musical.">
+  <title>SYNC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&family=Montserrat:wght@600..800&display=swap">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/motion.css">
+  <link rel="stylesheet" href="/css/components/art.css">
+  <link rel="stylesheet" href="/css/components/brand.css">
+  <link rel="stylesheet" href="/css/components/tabbar.css">
+  <link rel="stylesheet" href="/css/components/button.css">
+  <link rel="stylesheet" href="/css/components/controls.css">
+  <link rel="stylesheet" href="/css/components/list.css">
+  <link rel="stylesheet" href="/css/components/empty.css">
+  <link rel="stylesheet" href="/css/components/card.css">
+  <link rel="stylesheet" href="/css/components/sheet.css">
+  <link rel="stylesheet" href="/css/components/toast.css">
+  <link rel="stylesheet" href="/css/components/celebration.css">
+  <link rel="stylesheet" href="/css/components/meter.css">
+  <link rel="stylesheet" href="/css/components/chart.css">
+  <link rel="stylesheet" href="/css/features/group-details.css">
+  <link rel="stylesheet" href="/css/features/match-details.css">
+  <link rel="stylesheet" href="/css/pages/discover.css">
+  <link rel="stylesheet" href="/css/pages/vagas.css">
+  <link rel="stylesheet" href="/css/pages/perfil.css">
+  <link rel="stylesheet" href="/css/pages/painel.css">
+  <script type="module" src="/js/main.js"></script>
 </head>
 <body>
-  <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></symbol>
-    <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></symbol>
-    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.8l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.5a5.5 5.5 0 0 0 0-7.8z"/></symbol>
-    <symbol id="i-briefcase" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></symbol>
-    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
-    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-7-7 7 7-7 7"/></symbol>
-    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></symbol>
-    <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13M9 8l12-2"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
-    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 2.1 7.9L22 12l-7.9 2.1L12 22l-2.1-7.9L2 12l7.9-2.1z"/></symbol>
-    <symbol id="i-x" viewBox="0 0 24 24"><path d="M5 5 19 19M19 5 5 19"/></symbol>
-    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-cards" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="11" height="15" rx="3" transform="rotate(-10 9 13)"/><rect x="9" y="3.5" width="11.5" height="16" rx="3"/></symbol>
+    <symbol id="i-cards-fill" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="11" height="15" rx="3" transform="rotate(-10 9 13)"/><rect x="9" y="3.5" width="11.5" height="16" rx="3" fill="currentColor"/></symbol>
+    <symbol id="i-briefcase" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="3"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M3 12.5h18"/></symbol>
+    <symbol id="i-briefcase-fill" viewBox="0 0 24 24"><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"/><path fill="currentColor" stroke="none" d="M6 7h12a3 3 0 0 1 3 3v2H3v-2a3 3 0 0 1 3-3zm-3 7h18v3a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3z"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.2s-7.6-4.6-9.3-9.3C1.5 7.4 3.7 4.3 7 4.3c2 0 3.5 1.1 5 3 1.5-1.9 3-3 5-3 3.3 0 5.5 3.1 4.3 6.6-1.7 4.7-9.3 9.3-9.3 9.3z"/></symbol>
+    <symbol id="i-heart-fill" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M12 20.2s-7.6-4.6-9.3-9.3C1.5 7.4 3.7 4.3 7 4.3c2 0 3.5 1.1 5 3 1.5-1.9 3-3 5-3 3.3 0 5.5 3.1 4.3 6.6-1.7 4.7-9.3 9.3-9.3 9.3z"/></symbol>
+    <symbol id="i-person" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1.2-3.8 4.2-5.5 7.5-5.5s6.3 1.7 7.5 5.5"/></symbol>
+    <symbol id="i-person-fill" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.5" fill="currentColor" stroke="none"/><path fill="currentColor" stroke="none" d="M3.8 21c.9-4.4 4.2-6.8 8.2-6.8s7.3 2.4 8.2 6.8z"/></symbol>
+    <symbol id="i-star-fill" viewBox="0 0 24 24"><path fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" d="M12 2.8 14.7 9.1 21.4 9.6 16.4 14 18 20.7 12 17.1 6 20.7 7.6 14 2.6 9.6 9.3 9.1z"/></symbol>
+    <symbol id="i-x-bold" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.1"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M3.5 7h9M19 7h1.5M3.5 17h3M12.5 17h8"/><circle cx="15.5" cy="7" r="2.5"/><circle cx="9.5" cy="17" r="2.5"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9.5 5.5L16 12l-6.5 6.5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 1 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.6-4.4M4.5 3.5v4h4M4 13a8 8 0 0 0 14.6 4.4M19.5 20.5v-4h-4"/></symbol>
+    <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24"><path d="M7.5 4L4 7.5 7.5 11M4 7.5h14M16.5 13l3.5 3.5-3.5 3.5M20 16.5H6"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.5c2.4.1 4.3 1.5 5 4"/></symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M10 3l1.9 5.1L17 10l-5.1 1.9L10 17l-1.9-5.1L3 10l5.1-1.9zM18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9z"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><rect x="3.5" y="12" width="4" height="8" rx="1.5"/><rect x="10" y="4" width="4" height="16" rx="1.5"/><rect x="16.5" y="8.5" width="4" height="11.5" rx="1.5"/></symbol>
+    <symbol id="i-chart-fill" viewBox="0 0 24 24"><rect x="3.5" y="12" width="4" height="8" rx="1.5" fill="currentColor"/><rect x="10" y="4" width="4" height="16" rx="1.5" fill="currentColor"/><rect x="16.5" y="8.5" width="4" height="11.5" rx="1.5" fill="currentColor"/></symbol>
+    <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5.5l11-2.5v12.5"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="15.5" r="2.5"/></symbol>
+    <symbol id="i-wave" viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></symbol>
   </svg>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <a class="brand" href="#inicio" aria-label="SYNC, início"><span class="brand-mark"><svg><use href="#i-music"></use></svg></span><span>sync<span class="brand-dot">.</span></span></a>
-      <p class="sidebar-caption">SUA MÚSICA COMEÇA AQUI</p>
-      <nav class="sidebar-nav" aria-label="Navegação principal">
-        <a href="#inicio" data-nav="inicio"><svg><use href="#i-home"></use></svg>Início</a>
-        <a href="#descobrir" data-nav="descobrir"><svg><use href="#i-compass"></use></svg>Descobrir</a>
-        <a href="#vagas" data-nav="vagas"><svg><use href="#i-briefcase"></use></svg>Vagas</a>
-        <a href="#matches" data-nav="matches"><svg><use href="#i-heart"></use></svg>Matches</a>
-        <a href="#perfil" data-nav="perfil"><svg><use href="#i-user"></use></svg>Meu perfil</a>
-      </nav>
-      <div class="sidebar-foot"><span class="pulse-dot"></span><span>Feito para quem vive de música.</span></div>
-    </aside>
-    <div class="main-column">
-      <header class="topbar">
-        <a class="brand mobile-brand" href="#inicio" aria-label="SYNC, início"><span class="brand-mark"><svg><use href="#i-music"></use></svg></span><span>sync<span class="brand-dot">.</span></span></a>
-        <span class="topbar-label" id="page-label">Início</span>
-        <div class="topbar-right"><span class="connection-badge" id="connection-badge">Conectando</span><label class="profile-select-label"><span class="sr-only">Perfil de demonstração</span><select id="user-select" aria-label="Perfil de demonstração"></select></label></div>
-      </header>
-      <main id="app-main" tabindex="-1" aria-live="polite"></main>
-      <footer class="page-footer">SYNC · Feito para conectar talentos e histórias.</footer>
-    </div>
+
+  <!-- Casca do app. Cada <section> é preenchida pela sua tela em js/pages/. -->
+  <div class="app">
+    <section class="view view-discover" id="view-descobrir" aria-label="Descobrir"></section>
+    <section class="view" id="view-vagas" aria-label="Vagas" hidden></section>
+    <section class="view" id="view-matches" aria-label="Matches" hidden></section>
+    <section class="view" id="view-painel" aria-label="Painel" hidden></section>
+    <section class="view" id="view-perfil" aria-label="Perfil" hidden></section>
+
+    <!-- Tab bar no celular; sidebar a partir de 768px -->
+    <nav class="tabbar" aria-label="Navegação">
+      <a class="tabbar-brand wordmark" href="#descobrir" aria-label="SYNC, Descobrir"><span class="logo-mark" aria-hidden="true"><svg class="icon"><use href="#i-wave"/></svg></span><span class="wordmark-text">sync</span></a>
+      <div class="tabbar-items">
+        <span class="tab-lens" aria-hidden="true"></span>
+        <a class="tab" href="#descobrir" data-tab="descobrir">
+          <svg class="icon icon-off" aria-hidden="true"><use href="#i-cards"/></svg>
+          <svg class="icon icon-on" aria-hidden="true"><use href="#i-cards-fill"/></svg>
+          <span>Descobrir</span>
+        </a>
+        <a class="tab" href="#vagas" data-tab="vagas">
+          <svg class="icon icon-off" aria-hidden="true"><use href="#i-briefcase"/></svg>
+          <svg class="icon icon-on" aria-hidden="true"><use href="#i-briefcase-fill"/></svg>
+          <span>Vagas</span>
+        </a>
+        <a class="tab" href="#matches" data-tab="matches">
+          <svg class="icon icon-off" aria-hidden="true"><use href="#i-heart"/></svg>
+          <svg class="icon icon-on" aria-hidden="true"><use href="#i-heart-fill"/></svg>
+          <span>Matches</span><span class="tab-badge" id="matches-badge" hidden></span>
+        </a>
+        <a class="tab" href="#painel" data-tab="painel">
+          <svg class="icon icon-off" aria-hidden="true"><use href="#i-chart"/></svg>
+          <svg class="icon icon-on" aria-hidden="true"><use href="#i-chart-fill"/></svg>
+          <span>Painel</span>
+        </a>
+        <a class="tab" href="#perfil" data-tab="perfil">
+          <svg class="icon icon-off" aria-hidden="true"><use href="#i-person"/></svg>
+          <svg class="icon icon-on" aria-hidden="true"><use href="#i-person-fill"/></svg>
+          <span>Perfil</span>
+        </a>
+      </div>
+      <p class="tabbar-status" data-connection></p>
+    </nav>
   </div>
-  <nav class="bottom-nav" aria-label="Navegação principal">
-    <a href="#inicio" data-nav="inicio"><svg><use href="#i-home"></use></svg><span>Início</span></a>
-    <a href="#descobrir" data-nav="descobrir"><svg><use href="#i-compass"></use></svg><span>Descobrir</span></a>
-    <a href="#vagas" data-nav="vagas"><svg><use href="#i-briefcase"></use></svg><span>Vagas</span></a>
-    <a href="#matches" data-nav="matches"><svg><use href="#i-heart"></use></svg><span>Matches</span></a>
-    <a href="#perfil" data-nav="perfil"><svg><use href="#i-user"></use></svg><span>Perfil</span></a>
-  </nav>
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <div class="toast" id="toast" popover="manual" aria-hidden="true"></div>
+  <div class="sr-only" id="announcer" aria-live="polite"></div>
 </body>
 </html>

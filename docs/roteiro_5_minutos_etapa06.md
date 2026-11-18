@@ -4,13 +4,13 @@
 
 | Tempo | Tela e ação | Resultado esperado | Altera banco? |
 | --- | --- | --- | --- |
-| 0:00–0:40 | Swing → **Dashboard → Visão geral**. Mostrar músicos por nível, instrumentos com média de anos e pizza de decisões. Aplicar período `2026-10-01` a `2026-11-03` e voltar ao período vazio. | Gráfico 3 muda; os dados vêm de `DashboardDAO`. | Não |
+| 0:00–0:40 | Swing → **Dashboard → Visão geral** (ou Web → **Painel**, que mostra o mesmo dashboard). Mostrar os cartões e os 6 gráficos: nível (moda), instrumentos, pizza, semanas, histograma (média/mediana/moda/variância/desvio) e dispersão (Pearson). Aplicar período `2026-10-01` a `2026-11-03` e depois **Limpar**. | Cartões e gráficos 3 a 5 mudam; os dados vêm de `DashboardDAO`. | Não |
 | 0:40–1:30 | Swing → **Swipes e Matches**. Mostrar listagens. Inserir swipe `Like` de #2 para #64 (já existe o inverso no seed). | Novo swipe e novo match; atualizar o dashboard para ver a pizza mudar. | Sim |
 | 1:30–2:10 | Na aba **Matches e log**, selecionar o match novo e alterar situação de `Ativo` para `Encerrado`. | Linha `Ativo → Encerrado` aparece no histórico logo abaixo. | Sim |
-| 2:10–3:00 | Web → **Vagas → Recomendadas para você**, filtrar função e nível; depois **Perfil**. | View e função de compatibilidade mudam recomendações; taxa de retribuição é exibida. | Não |
-| 3:00–3:40 | Web → **Vagas → Sincronizar grupos**. | Aviso com quantidades; segundo clique deve retornar zero. | Sim |
+| 2:10–3:00 | Web → **Vagas → Para você**: buscar uma função e tocar num chip de nível; depois **Perfil**. | View e função de compatibilidade mudam as recomendações; o anel mostra a taxa de retribuição. | Não |
+| 3:00–3:40 | Web → **Perfil → Sincronizar grupos**. | Aviso com quantidades; segundo clique deve retornar zero. | Sim |
 | 3:40–4:25 | Swing → **Vagas**. Criar vaga aberta, editar para fechada e excluir. Reabrir dashboard e atualizar. | Persistência CRUD e indicador de vagas abertas variam. | Sim |
-| 4:25–5:00 | Swing → **Dashboard → Consultas**. Executar Consulta 2 e Consulta 6 com músicos diferentes; indicar a SQL e o parâmetro `?`. | Resultados dependem do banco e do músico escolhido. | Não |
+| 4:25–5:00 | Swing → **Dashboard → Consultas**. Executar a Consulta 6 com dois músicos diferentes e a **12 (auditoria)** filtrando um diagnóstico; indicar a SQL e o parâmetro `?`. | Resultados dependem do banco e do parâmetro; a auditoria colore cada linha pelo diagnóstico. | Não |
 
 **Depois do ensaio:** executar `sql/00_reset.sql` novamente e conferir `sql/08_verificacao_etapa06.sql`. Não usar o teste de “like mútuo sem match” enquanto `tr_swipe_cria_match` estiver ativo; o estado inicial já tem casos consistentes e matches sem like mútuo.
 

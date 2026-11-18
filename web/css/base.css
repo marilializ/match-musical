@@ -1,0 +1,118 @@
+/* Base: reset, tipografia padrão, moldura do app, telas e título grande. */
+
+*, *::before, *::after { box-sizing: border-box; }
+html { height: 100%; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  font: var(--text-body);
+  color: var(--color-label);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  font-synthesis: none;
+}
+h1, h2, h3, p { margin: 0; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+button, input { font: inherit; color: inherit; }
+button { margin: 0; padding: 0; border: 0; background: none; cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+kbd { font: inherit; }
+[hidden] { display: none !important; }
+:focus { outline: none; }
+:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+.icon {
+  width: var(--size-icon); height: var(--size-icon); flex: none;
+  fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+
+/* Size classes: mostra só no compacto (celular) ou só no regular (tablet/desktop). */
+@media (min-width: 768px) { .only-compact { display: none !important; } }
+@media (max-width: 767.98px) { .only-regular { display: none !important; } }
+@media (hover: none), (pointer: coarse) { .only-pointer { display: none !important; } }
+
+/* ---------- Moldura ---------- */
+.app {
+  position: relative;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+.view {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  min-width: 0;
+  animation: view-in var(--dur-base) var(--ease-out); /* recomeça sempre que a tela volta a aparecer */
+}
+@keyframes view-in { from { opacity: 0; } to { opacity: 1; } }
+
+@media (min-width: 768px) {
+  .app { display: grid; grid-template-columns: var(--size-rail) minmax(0, 1fr); }
+  .view { position: relative; inset: auto; grid-column: 2; grid-row: 1; height: 100dvh; }
+}
+
+/* ---------- Tela com rolagem e título grande ---------- */
+.view-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: calc(env(safe-area-inset-top) + var(--space-3)) var(--space-4)
+           calc(var(--size-tabbar) + var(--space-12) + env(safe-area-inset-bottom));
+  scrollbar-width: none;
+}
+.view-scroll::-webkit-scrollbar { display: none; }
+@media (min-width: 1200px) {
+  .app { grid-template-columns: var(--size-sidebar) minmax(0, 1fr); }
+}
+@media (min-width: 768px) {
+  .view-scroll {
+    /* coluna de leitura centralizada, com a barra de rolagem na borda da tela */
+    padding: var(--space-10) max(var(--space-8), calc((100% - var(--size-reading)) / 2)) var(--space-16);
+    scrollbar-width: thin;
+  }
+}
+
+.nav-bar {
+  position: absolute; top: 0; left: 0; right: 0;
+  z-index: var(--z-header);
+  height: calc(var(--size-header) + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+  transition: background-color var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease);
+}
+.nav-title {
+  font: var(--text-headline);
+  opacity: 0; transform: translateY(var(--space-1));
+  transition: opacity var(--dur-fast) var(--ease), transform var(--dur-moderate) var(--ease-out);
+}
+.nav-bar.is-compact {
+  background: var(--material-bar);
+  -webkit-backdrop-filter: var(--material-blur); backdrop-filter: var(--material-blur);
+  box-shadow: 0 1px 0 var(--color-separator);
+}
+.nav-bar.is-compact .nav-title { opacity: 1; transform: none; }
+
+.large-title {
+  font: var(--text-large-title);
+  letter-spacing: var(--tracking-tight);
+  margin: var(--space-2) 0 var(--space-4);
+}
+.section-title { font: var(--text-title-3); margin: var(--space-6) 0 var(--space-3); }
+.footnote { font: var(--text-footnote); color: var(--color-label-2); padding: 0 var(--space-4); }
+.list-count { margin: 0 0 var(--space-2); }
+.link { font: var(--text-subhead); font-weight: var(--weight-semibold); color: var(--color-accent-text); }
+@media (hover: hover) { .link:hover { text-decoration: underline; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .view { animation-duration: 1ms; }
+}

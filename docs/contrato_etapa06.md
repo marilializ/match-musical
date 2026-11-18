@@ -32,9 +32,9 @@ O dashboard Swing existente possui indicadores e dois gráficos antigos, sem com
 ## Responsabilidades e pendências coletivas
 
 - CRUD completo já existente: `Musico` e `Vaga`. Novo CRUD completo: `Swipe` e `Match`, na janela Swing **Swipes e Matches**. A meta de quatro tabelas está coberta no código, pendente de ensaio com MySQL.
-- Gráficos 1 a 3: `DashboardDAO`, `DashboardFrame` e `GraficoPizzaPanel`. Gráficos 4 a 6 e seis cartões de indicadores não estão neste repositório; falta a frente da Pessoa 6.
+- Gráficos 1 a 3: `DashboardDAO`, `DashboardFrame` e `GraficoPizzaPanel`. ~~Gráficos 4 a 6 e seis cartões de indicadores não estão neste repositório; falta a frente da Pessoa 6.~~ Feito em 18/11 (ver a atualização abaixo).
 - A interface web já mostra efeitos de funções, procedimentos, triggers e log. A nova janela Swing também mostra o efeito dos dois triggers.
-- A auditoria e as consultas avançadas da Etapa 4 precisam de integração à interface para cumprir toda a entrega coletiva. O script 05 atual publica apenas duas consultas e dois índices; confirmar com a Pessoa 3 as quatro consultas previstas.
+- ~~A auditoria e as consultas avançadas da Etapa 4 precisam de integração à interface para cumprir toda a entrega coletiva. O script 05 atual publica apenas duas consultas e dois índices; confirmar com a Pessoa 3 as quatro consultas previstas.~~ Feito em 18/11 (ver a atualização abaixo).
 - `GRANT EXECUTE ON match_musical.* TO 'sync_app'@'localhost'` está no reset. Rotinas com `DELIMITER` são carregadas pelo cliente `mysql`, não pelo JDBC.
 
 ## Verificação executada
@@ -42,3 +42,29 @@ O dashboard Swing existente possui indicadores e dois gráficos antigos, sem com
 O `00_reset.sql` concluiu sem erro na instância temporária. `08_verificacao_etapa06.sql` retornou 66 swipes, 35 matches, 38 mensagens, 0 logs, 15 matches com like mútuo, 2 matches sem mensagem, 2 views, 2 funções, 2 procedimentos e 2 triggers. As séries semanais de swipes e matches cobrem setembro, outubro e novembro de 2026. Antes dos testes de escrita, todas as tabelas originais do esquema tinham pelo menos 30 linhas; `Log_Match` começa em zero para que o trigger possa demonstrar a primeira mudança.
 
 Passaram `Etapa6IntegrationCheck`, `SwipeMatchDAOIntegrationCheck`, `MusicoDAOIntegrationCheck` e `VagaDAOIntegrationCheck`. O teste novo confirmou filtros dos gráficos 1 a 3, alteração da contagem de decisões após inserir/excluir swipe, CRUD de Swipe/Match e registro do log. O reset foi repetido após ajustar o seed. Ainda falta ensaio visual e cronometrado da interface Swing/web no ambiente da apresentação.
+
+## Atualização de 18/11/2026 — frentes 3 e 6 fechadas
+
+**Pessoa 3 (consultas).** A aba *Consultas* do dashboard Swing tem as **12 consultas**: 1 a 8 da Etapa 3 e 9 a 12 da Etapa 4.
+- A consulta 2 da Etapa 4 (**subconsulta correlacionada**: quem tem mais anos em um instrumento do que a média desse instrumento) não existia em nenhuma versão do `05`; foi escrita e entrou no `05_consultas_avancadas.sql`, que já roda no reset. Com ela, as 4 da Etapa 4 ficam: anti join (9), subconsulta correlacionada (10), subconsulta no FROM (11) e full outer join emulado (12). **Conferir com o PDF da Etapa 4 se a consulta 2 pedida era outra.**
+- Parâmetros por `PreparedStatement`: músico (6), categoria principal (9), instrumento (10) e diagnóstico (12), estes três opcionais com `(? IS NULL OR coluna = ?)`. Na consulta 1 da Etapa 4 entrou a coluna `categoria_principal`, para o filtro ser visível.
+- Destaque visual: a coluna que responde a pergunta fica em negrito azul; na auditoria, cada linha tem a cor do diagnóstico. `ConsultaSQL.java` e o README falam em 12 consultas.
+
+**Pessoa 6 (dashboard).** A aba *Visão geral* tem:
+- 6 cartões (músicos, grupos, vagas abertas, matches ativos, % convertidos, média de mensagens por match) e a taxa média de retribuição opcional (`fn_taxa_retribuicao_usuario`; sem a função, o cartão mostra "-").
+- Filtro global de período (cartões de match e gráficos 3 a 5) e filtros por categoria: categoria principal (1), habilidade (2), situação do match (5) e instrumento (6).
+- Gráfico 4: linha semanal de swipes e matches, com as semanas sem evento preenchidas com zero.
+- Gráfico 5: histograma de mensagens por match, com média, mediana, moda (empates listados), variância e desvio padrão **amostrais** (n − 1, dito na tela). Média, variância e desvio vêm do SQL (`AVG`, `VAR_SAMP`, `STDDEV_SAMP`); a mediana e a moda saem das frequências do `GROUP BY` (classe `Estatistica`).
+- Gráfico 6: dispersão nº de instrumentos × média de anos por músico, com reta de tendência e Pearson pela fórmula com `AVG` e `STDDEV_POP` no SQL. Atenção: `Toca.tempo_experiencia` é `INT` (anos), não `TIME`, então não há `TIME_TO_SEC`.
+- O gráfico antigo "Músicos por instrumento (consulta 2)" saiu, porque repetia o gráfico 2 sem filtro; o de gêneros da Consulta 7 continua como extra.
+
+**Verificação.** Reset completo (`00_reset.sql`) em uma instância MySQL 26.7 temporária e isolada; o banco local não foi tocado. Passaram `DashboardEtapa6Check` (novo), `Etapa6IntegrationCheck`, `SwipeMatchDAOIntegrationCheck`, `MusicoDAOIntegrationCheck` e `VagaDAOIntegrationCheck`.
+- Com o seed: 8 semanas de atividade; mensagens por match com média 1,09, mediana 1, moda 1 e desvio padrão 0,66 (n = 35); Pearson r = −0,246 (correlação fraca negativa, n = 30 músicos); taxa média de retribuição de 53,1%; 0% de matches convertidos até alguém converter na demonstração.
+- O teste de aceitação do enunciado (inserir um swipe pelo CRUD e ver o gráfico mudar) passou.
+
+**Interface web.** Foi refeita como app de swipe (Descobrir, Vagas, Matches, Perfil) e muda os caminhos usados no roteiro: *Vagas → Para você*, *Descobrir → Ver mais*, *Perfil → Sincronizar grupos*, *Matches → Histórico*. O `roteiro_5_minutos_etapa06.md` e o `roteiro_teste.md` foram ajustados.
+
+**Dashboard também na web (18/11).** A aba **Painel** da interface web mostra o mesmo dashboard: indicadores, os 6 gráficos e as 12 consultas, pelos endpoints `/api/dashboard`, `/api/consultas` e `/api/consultas/executar` do `WebMain`, que chamam o mesmo `DashboardDAO`, sem SQL novo. Os gráficos são SVG próprios (`web/js/ui/charts/`), com paleta validada para daltonismo nos dois temas. As duas medidas do gráfico 2 ficam em painéis lado a lado, nunca em dois eixos. Cada gráfico tem "Ver dados" com a tabela dos números. Sem banco (modo demonstração), o Painel avisa que precisa do MySQL, porque o dashboard só mostra dados do banco.
+
+**Ainda pendente (coletivo).** Ensaio cronometrado da apresentação de 24/11 com o banco recriado, e a troca de explicações: cada pessoa explicando uma parte que não escreveu.
+

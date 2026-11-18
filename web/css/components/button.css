@@ -1,0 +1,137 @@
+/* Botões: cápsula de texto (.btn), ícone (.icon-btn) e botão redondo de decisão (.action). */
+
+.btn {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  height: var(--size-button); padding: 0 var(--space-6);
+  border-radius: var(--radius-pill);
+  font: var(--text-headline);
+  transition: transform var(--dur-instant) var(--ease-out), opacity var(--dur-fast) var(--ease), filter var(--dur-fast) var(--ease);
+}
+.btn:active { transform: scale(var(--press-scale)); }
+.btn-block { width: 100%; }
+.btn-primary { background: var(--color-accent); color: #fff; }
+.btn-secondary { background: var(--color-fill); color: var(--color-label); }
+.btn-plain { background: transparent; color: var(--color-accent-text); }
+.btn-light { background: #fff; color: var(--color-accent); }
+.btn-ghost-light { background: rgba(255, 255, 255, 0.18); color: #fff; }
+.btn[disabled] { opacity: 0.5; pointer-events: none; }
+.btn.is-loading > span:not(.spinner) { opacity: 0; }
+.btn.is-loading .spinner { position: absolute; }
+
+.icon-btn {
+  position: relative;
+  min-width: var(--size-hit); height: var(--size-hit);
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  border-radius: var(--radius-pill);
+  color: var(--color-label);
+  transition: background-color var(--dur-fast) var(--ease), transform var(--dur-instant) var(--ease-out);
+}
+.icon-btn:active { background: var(--color-fill); transform: scale(var(--press-scale)); }
+.icon-dot {
+  position: absolute; top: var(--space-2); right: var(--space-2);
+  width: 8px; height: 8px; border-radius: var(--radius-pill);
+  background: var(--color-accent); box-shadow: 0 0 0 2px var(--color-bg);
+}
+@media (min-width: 768px) {
+  /* No regular o rótulo aparece: ícone + texto lê mais rápido que só ícone */
+  .icon-btn.has-label { padding: 0 var(--space-4); background: var(--color-fill); font: var(--text-subhead); font-weight: var(--weight-semibold); }
+  .icon-btn.has-label .icon-dot { position: static; box-shadow: none; }
+}
+
+.action {
+  --ink: 0; /* 0 = sem tinta, 1 = botão todo pintado */
+  position: relative; isolation: isolate; overflow: hidden;
+  width: var(--size-action); height: var(--size-action);
+  display: grid; place-items: center; flex: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-md);
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    color var(--dur-base) var(--ease),
+    opacity var(--dur-base) var(--ease);
+}
+/* A tinta: um círculo da cor do botão que nasce no ponto onde o mouse entrou
+   (--ink-x/--ink-y, escritos por js/ui/ink.js) e cresce até cobrir tudo.
+   Com o dobro do diâmetro do botão, cobre o botão inteiro de qualquer ponto de partida. */
+.action::before {
+  content: ""; position: absolute; z-index: -1;
+  left: var(--ink-x, 50%); top: var(--ink-y, 50%);
+  width: 200%; aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--ink-color);
+  transform: translate(-50%, -50%) scale(var(--ink));
+  transition: transform var(--dur-slow) var(--ease-out);
+  pointer-events: none;
+}
+/* O ícone é sempre metade do círculo */
+.action .icon { position: relative; width: 50%; height: 50%; stroke-width: 3; }
+.action:active, .action.is-pressed { transform: scale(var(--press-scale-strong)); transition-duration: var(--dur-instant); }
+.action-nope { color: var(--color-nope); --ink-color: var(--color-nope); }
+.action-like { color: var(--color-like); --ink-color: var(--color-like-solid); }
+.action-super { color: var(--color-super); --ink-color: var(--color-super); }
+/* "Ponto sem volta": o arrasto passou do limite e a tinta enche o botão a partir do centro */
+.action.is-armed { --ink: 1; --ink-x: 50%; --ink-y: 50%; color: #fff; }
+.action[aria-disabled="true"] { opacity: 0.4; pointer-events: none; }
+
+@media (hover: hover) {
+  .btn-primary:hover, .btn-light:hover { filter: brightness(1.06); }
+  .btn-secondary:hover, .icon-btn:hover { background: var(--color-fill-strong); }
+  /* Hover = prévia da escolha: a tinta entra por onde o mouse chegou, o ícone fica branco
+     e faz, discretamente, o gesto do que significa. Sem brilho; sombra neutra. */
+  .action:hover { --ink: 1; color: #fff; }
+  .action:not(:active):not(.is-pressed):hover { transform: translateY(-1px); box-shadow: var(--shadow-raised); }
+
+  .action-like:hover .icon { animation: icon-heartbeat 1.6s var(--ease-out) 120ms infinite; } /* batida leve, com pausa */
+  .action-super:hover .icon { animation: icon-star 520ms var(--ease-out) 60ms both; }       /* pulinho para cima: super like é "para cima" */
+  .action-nope:hover .icon { animation: icon-shake 420ms var(--ease-in-out) 60ms both; }    /* um "não" curto */
+}
+
+@keyframes icon-heartbeat {
+  0%, 50%, 100% { transform: scale(1); }
+  12% { transform: scale(1.1); }
+  24% { transform: scale(1); }
+  36% { transform: scale(1.06); }
+}
+@keyframes icon-star {
+  /* sem rotação (gira torto: o centro visual da estrela não é o centro da caixa) */
+  0%, 100% { transform: translateY(0) scale(1); }
+  40% { transform: translateY(-3px) scale(1.08); }
+  70% { transform: translateY(0.5px) scale(0.98); }
+}
+@keyframes icon-shake {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  25% { transform: translateX(-1.5px) rotate(-5deg); }
+  50% { transform: translateX(1.5px) rotate(5deg); }
+  75% { transform: translateX(-0.5px) rotate(-2deg); }
+}
+
+/* Fechar (sheet, card lateral). Alvo de 44 com o círculo visível menor. */
+.close-btn {
+  flex: none;
+  width: var(--size-hit); height: var(--size-hit);
+  display: grid; place-items: center;
+  border-radius: var(--radius-pill);
+  color: var(--color-label-2);
+}
+.close-btn span {
+  width: var(--size-chip); height: var(--size-chip);
+  display: grid; place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-fill);
+  transition: transform var(--dur-instant) var(--ease-out), background-color var(--dur-fast) var(--ease);
+}
+.close-btn:active span { transform: scale(var(--press-scale-strong)); }
+.close-btn .icon { width: 16px; height: 16px; stroke-width: 3; }
+.close-btn.is-floating { position: absolute; top: var(--space-3); right: var(--space-3); z-index: 2; color: #fff; }
+.close-btn.is-floating span { background: var(--material-on-card); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+@media (hover: hover) { .close-btn:hover span { background: var(--color-fill-strong); } }
+
+@media (prefers-reduced-motion: reduce) {
+  /* sem movimento: a cor aparece com um fade curto, sem tinta se espalhando nem gesto do ícone */
+  .action::before { transform: translate(-50%, -50%) scale(1); opacity: var(--ink); transition: opacity var(--dur-base) var(--ease); }
+  .action:not(:active):not(.is-pressed):hover { transform: none; }
+  .action:hover .icon { animation: none; }
+}

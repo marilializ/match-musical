@@ -1,0 +1,106 @@
+/*
+ * Navegação principal. Um componente só, que se adapta (como a tab bar do iPadOS):
+ *   compacto → cápsula flutuante embaixo, 4 abas com ícone + rótulo
+ *   regular  → barra estreita à esquerda: ícone com rótulo pequeno embaixo
+ *   amplo    → sidebar completa, com marca e status da conexão
+ * A "lente" desliza até a aba ativa com mola — explica a troca de seção.
+ */
+
+.tabbar {
+  position: absolute;
+  left: var(--space-4); right: var(--space-4);
+  bottom: calc(var(--space-2) + env(safe-area-inset-bottom));
+  z-index: var(--z-tabbar);
+  height: var(--size-tabbar);
+  padding: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--material-bar);
+  -webkit-backdrop-filter: var(--material-blur); backdrop-filter: var(--material-blur);
+  box-shadow: var(--shadow-md), inset 0 0 0 1px var(--material-edge);
+}
+.tabbar-items { position: relative; height: 100%; display: grid; grid-template-columns: repeat(var(--tabs, 5), 1fr); }
+.tab-lens {
+  position: absolute; top: 0; bottom: 0; left: 0; width: calc(100% / var(--tabs, 5));
+  border-radius: var(--radius-pill);
+  background: var(--color-fill);
+  transform: translateX(calc(var(--tab, 0) * 100%));
+  transition: transform var(--spring-snappy-duration) var(--spring-snappy);
+}
+.tab {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1);
+  border-radius: var(--radius-pill);
+  font: var(--text-caption);
+  color: var(--color-label-2);
+  transition: color var(--dur-fast) var(--ease), transform var(--dur-instant) var(--ease-out);
+}
+.tab:active { transform: scale(var(--press-scale)); }
+.tab[aria-current="page"] { color: var(--color-accent-text); }
+.tab .icon-on, .tab[aria-current="page"] .icon-off { display: none; }
+.tab[aria-current="page"] .icon-on { display: block; }
+.tab-badge {
+  position: absolute; top: var(--space-1); left: calc(50% + var(--space-2));
+  min-width: 20px; height: 20px; padding: 0 var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--color-nope); color: #fff;
+  font: 700 0.75rem/20px var(--font-display); text-align: center;
+  box-shadow: 0 0 0 2px var(--color-surface);
+  animation: pop var(--spring-bouncy-duration) var(--spring-bouncy);
+}
+
+.tabbar-brand, .tabbar-status { display: none; }
+
+@media (hover: hover) {
+  .tab:not([aria-current="page"]):hover { color: var(--color-label); }
+}
+
+@media (min-width: 768px) {
+  .tabbar {
+    position: relative; inset: auto;
+    grid-column: 1; grid-row: 1;
+    height: 100dvh;
+    display: flex; flex-direction: column; gap: var(--space-8);
+    padding: var(--space-8) var(--space-4) var(--space-6);
+    border-radius: 0;
+    background: var(--color-surface);
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+    box-shadow: inset -1px 0 0 var(--color-separator);
+  }
+  .tabbar-brand { display: flex; padding: 0 var(--space-3); }
+  .tabbar-items { height: auto; display: flex; flex-direction: column; gap: var(--space-1); }
+  .tab-lens {
+    width: 100%; height: var(--size-tab-row); bottom: auto;
+    border-radius: var(--radius-md);
+    transform: translateY(calc(var(--tab, 0) * (var(--size-tab-row) + var(--space-1))));
+  }
+  .tab {
+    flex-direction: row; justify-content: flex-start; gap: var(--space-3);
+    height: var(--size-tab-row); padding: 0 var(--space-3);
+    border-radius: var(--radius-md);
+    font: var(--text-headline);
+  }
+  .tab:active { transform: none; }
+  .tab-badge { position: static; margin-left: auto; box-shadow: none; }
+  .tabbar-status {
+    display: flex; align-items: center; gap: var(--space-2);
+    margin-top: auto; padding: 0 var(--space-3);
+    font: var(--text-footnote); color: var(--color-label-2);
+  }
+}
+
+/* Barra estreita (768–1199px): libera espaço para o card lateral do Descobrir sem perder os rótulos */
+@media (min-width: 768px) and (max-width: 1199.98px) {
+  .tabbar { --size-tab-row: var(--size-rail-item); align-items: center; gap: var(--space-6); padding: var(--space-6) var(--space-2); }
+  .tabbar-brand { padding: 0; }
+  .tabbar-brand .wordmark-text, .tabbar-status-text { display: none; }
+  .tabbar-items { width: 100%; }
+  .tab { flex-direction: column; justify-content: center; gap: var(--space-1); padding: 0; font: var(--text-caption); }
+  .tab-lens { border-radius: var(--radius-lg); }
+  .tab-badge { position: absolute; top: var(--space-1); left: calc(50% + var(--space-2)); margin: 0; }
+  .tabbar-status { justify-content: center; padding: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-lens { transition: none; }
+  .tab-badge { animation: none; }
+}

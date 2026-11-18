@@ -27,9 +27,6 @@
 .dash-title { font: var(--text-title-2); letter-spacing: var(--tracking-tight); }
 .dash-scope { font: var(--text-footnote); color: var(--color-label-2); }
 
-.periodo { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
-.periodo label { display: inline-flex; align-items: center; gap: var(--space-2); font: var(--text-subhead); color: var(--color-label-2); }
-.periodo-erro { flex-basis: 100%; text-align: right; font: var(--text-footnote); font-weight: var(--weight-medium); color: var(--color-nope); }
 
 .dash-section .kpi-grid { margin-bottom: var(--space-3); }
 .dash-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
@@ -74,7 +71,7 @@
 .query-item[aria-current] .query-num { color: var(--color-accent-text); }
 .query-item:focus-visible { outline: 3px solid var(--color-focus); outline-offset: -1px; }
 
-.query-picker { width: 100%; height: var(--size-field); margin-bottom: var(--space-4); }
+.query-picker { width: 100%; margin-bottom: var(--space-4); } /* some no desktop (lista ao lado), ver acima */
 .query-head { display: grid; gap: var(--space-1); margin-bottom: var(--space-4); }
 .query-eyebrow { font: var(--text-footnote); font-weight: var(--weight-semibold); color: var(--color-label-2); }
 .query-title { font: var(--text-title-2); letter-spacing: var(--tracking-tight); }

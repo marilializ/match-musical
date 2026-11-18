@@ -12,10 +12,13 @@ import * as repo from '../../core/repo.js';
 import { emptyState } from '../../ui/empty.js';
 import { tabela } from '../../ui/data-table.js';
 import { pill } from '../../ui/pill.js';
+import '../../ui/dropdown.js';
 
 const CLASSE_DIAGNOSTICO = { Consistente: 'is-ok', 'Match sem like mutuo': 'is-warn', 'Like mutuo sem match': 'is-bad' };
 const ROTULO = { MUSICO: 'Músico', CATEGORIA: 'Categoria', INSTRUMENTO: 'Instrumento', DIAGNOSTICO: 'Diagnóstico' };
 const ORIGENS = ['Etapa 3', 'Etapa 4'];
+/** Texto exibido dos diagnósticos; o valor enviado ao SQL continua o do banco (sem acento). */
+const DIAGNOSTICO_TEXTO = { 'Match sem like mutuo': 'Match sem like mútuo', 'Like mutuo sem match': 'Like mútuo sem match' };
 
 export function createQueries(root) {
   let catalogo = null;
@@ -37,17 +40,14 @@ export function createQueries(root) {
               </button>`).join('')}`).join('')}
         </nav>
         <div class="query-main">
-          <select class="select query-picker" data-query aria-label="Consulta">
-            ${ORIGENS.map((origem) => `<optgroup label="${origem}">${daOrigem(origem)
-              .map((c) => `<option value="${c.numero}">${c.numero}. ${esc(c.titulo)}</option>`).join('')}</optgroup>`).join('')}
-          </select>
+          <sync-dropdown class="query-picker" variant="field" data-query label="Consulta"></sync-dropdown>
           <header class="query-head">
             <p class="query-eyebrow" data-eyebrow></p>
             <h2 class="query-title" data-title></h2>
             <p class="query-question" data-question></p>
           </header>
           <div class="query-controls">
-            <label class="query-param" data-param-wrap><span data-param-label></span><select class="select" data-param></select></label>
+            <div class="query-param" data-param-wrap><span data-param-label aria-hidden="true"></span><sync-dropdown data-param></sync-dropdown></div>
             <span class="query-count" data-status aria-live="polite"></span>
           </div>
           <div class="audit-legend" data-legend hidden>
@@ -61,7 +61,9 @@ export function createQueries(root) {
       const item = event.target.closest('[data-numero]');
       if (item) escolher(Number(item.dataset.numero));
     });
-    root.querySelector('[data-query]').addEventListener('change', (event) => escolher(Number(event.target.value)));
+    const picker = root.querySelector('[data-query]');
+    picker.options = ORIGENS.map((origem) => ({ grupo: origem, opcoes: daOrigem(origem).map((c) => [c.numero, `${c.numero}. ${c.titulo}`]) }));
+    picker.addEventListener('change', () => escolher(Number(picker.value)));
     root.querySelector('[data-param]').addEventListener('change', executar);
   }
 
@@ -91,11 +93,12 @@ export function createQueries(root) {
       MUSICO: (state.data?.musicians ?? []).map((m) => [m.id, displayName(m)]),
       CATEGORIA: [['', 'Todas'], ...opcoes.categorias.map((c) => [c, c])],
       INSTRUMENTO: [['', 'Todos'], ...opcoes.instrumentos.map((i) => [i.id, i.nome])],
-      DIAGNOSTICO: [['', 'Todos'], ...opcoes.diagnosticos.map((d) => [d, d])],
+      DIAGNOSTICO: [['', 'Todos'], ...opcoes.diagnosticos.map((d) => [d, DIAGNOSTICO_TEXTO[d] ?? d])],
     }[consulta.parametro] ?? [];
-    const select = root.querySelector('[data-param]');
-    select.innerHTML = lista.map(([valor, texto]) => `<option value="${esc(valor)}">${esc(texto)}</option>`).join('');
-    if (consulta.parametro === 'MUSICO' && state.userId) select.value = String(state.userId);
+    const param = root.querySelector('[data-param]');
+    param.options = lista;
+    param.value = consulta.parametro === 'MUSICO' && state.userId ? String(state.userId) : '';
+    param.setAttribute('label', ROTULO[consulta.parametro] ?? 'Parâmetro');
     root.querySelector('[data-param-wrap]').hidden = !lista.length;
     root.querySelector('[data-param-label]').textContent = ROTULO[consulta.parametro] ?? '';
   }

@@ -1,0 +1,83 @@
+/*
+ * <sync-date-range> e a grade do calendário.
+ * Atalhos à esquerda (no celular, em cima), mês à direita. O intervalo é uma
+ * faixa contínua tingida; o primeiro e o último dia são círculos cheios.
+ */
+
+/* ---------- Gatilho ---------- */
+.dr-icon { width: 16px; height: 16px; color: var(--color-label-2); }
+sync-date-range.has-value .dr-trigger { padding-right: calc(var(--space-3) + 24px); }
+sync-date-range.has-value .dd-chevron { visibility: hidden; }
+.dr-clear {
+  position: absolute; top: 50%; right: var(--space-1);
+  width: 24px; height: 24px; margin-top: -12px;
+  display: grid; place-items: center;
+  border-radius: var(--radius-pill);
+  color: var(--color-label-2);
+  transition: background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.dr-clear .icon { width: 14px; height: 14px; stroke-width: 2.5; }
+@media (hover: hover) { .dr-clear:hover { background: var(--color-fill); color: var(--color-label); } }
+.dr-clear:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 1px; }
+
+/* ---------- Painel ---------- */
+.dr-panel { max-height: none; padding: var(--space-3); }
+.dr-panel:popover-open { display: grid; gap: var(--space-3); }
+.dr-presets { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.dr-preset {
+  min-height: var(--size-chip); padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-fill);
+  font: var(--text-footnote); font-weight: var(--weight-medium); color: var(--color-label);
+  text-align: left; white-space: nowrap;
+  transition: background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.dr-preset[aria-pressed="true"] { background: var(--color-inverse); color: var(--color-on-inverse); }
+.dr-preset:focus-visible, .cal-nav:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+@media (min-width: 600px) {
+  .dr-panel:popover-open { grid-template-columns: 148px auto; gap: var(--space-4); }
+  .dr-presets { flex-direction: column; flex-wrap: nowrap; padding-right: var(--space-4); box-shadow: 1px 0 0 var(--color-separator); }
+  .dr-preset { min-height: 36px; border-radius: var(--radius-sm); background: none; font: var(--text-subhead); }
+  .dr-preset[aria-pressed="true"] { background: var(--color-fill); color: var(--color-label); font-weight: var(--weight-semibold); }
+  @media (hover: hover) { .dr-preset:hover:not([aria-pressed="true"]) { background: var(--color-fill); } }
+}
+
+/* ---------- Calendário ---------- */
+.dr-cal { --cal-cell: 40px; width: calc(var(--cal-cell) * 7); }
+@media (max-width: 599px) { .dr-cal { --cal-cell: 44px; justify-self: center; } } /* toque: alvo de 44px */
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2); }
+.cal-title { font: var(--text-headline); }
+.cal-nav {
+  width: 36px; height: 36px; display: grid; place-items: center;
+  border-radius: var(--radius-pill); color: var(--color-label);
+  transition: background-color var(--dur-fast) var(--ease);
+}
+.cal-nav .icon { width: 18px; height: 18px; }
+.cal-nav .is-back { transform: rotate(180deg); }
+@media (hover: hover) { .cal-nav:hover { background: var(--color-fill); } }
+
+.cal-grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.cal-grid th { height: 28px; font: var(--text-caption); color: var(--color-label-2); }
+.cal-cell { height: var(--cal-cell); padding: 2px 0; }
+.cal-day {
+  display: grid; place-items: center;
+  width: calc(var(--cal-cell) - 4px); height: calc(var(--cal-cell) - 4px); margin: 0 auto;
+  border-radius: var(--radius-pill);
+  font: var(--text-subhead); font-variant-numeric: tabular-nums; color: var(--color-label);
+  transition: background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.cal-day:active { transform: scale(0.92); }
+.cal-day:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; }
+@media (hover: hover) { .cal-cell:not(.is-start):not(.is-end) .cal-day:hover { background: var(--color-fill); } }
+.cal-cell.is-outside .cal-day { color: var(--color-label-3); }
+.cal-cell.is-today .cal-day { color: var(--color-accent-text); font-weight: var(--weight-bold); }
+
+/* Intervalo: faixa contínua entre as pontas (meia faixa na ponta, para emendar) */
+.cal-cell.in-range { background: color-mix(in srgb, var(--color-accent) 14%, transparent); }
+.cal-cell.is-start.has-range { background: linear-gradient(to right, transparent 50%, color-mix(in srgb, var(--color-accent) 14%, transparent) 50%); }
+.cal-cell.is-end.has-range { background: linear-gradient(to left, transparent 50%, color-mix(in srgb, var(--color-accent) 14%, transparent) 50%); }
+.cal-cell.is-start .cal-day, .cal-cell.is-end .cal-day { background: var(--color-accent); color: #fff; font-weight: var(--weight-semibold); }
+
+.dr-hint { margin-top: var(--space-2); font: var(--text-footnote); color: var(--color-label-2); text-align: center; }
+
+@media (prefers-reduced-motion: reduce) { .cal-day:active { transform: none; } }

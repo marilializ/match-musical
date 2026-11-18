@@ -58,7 +58,8 @@ web/
 └── js/
     ├── main.js             boot e roteamento por hash (#descobrir, #vagas, #matches, #perfil)
     ├── core/               estado, eventos, API, demonstração, repositório, física de mola
-    ├── ui/                 componentes genéricos: sheet, toast, lista, segmented, chips, avatar, tabela…
+    ├── ui/                 componentes genéricos: sheet, toast, lista, segmented, chips, avatar, tabela,
+    │                       dropdown (<sync-dropdown>), calendário de período (<sync-date-range>) e popover…
     │   └── charts/         gráficos SVG (barras, rosca, linha, histograma, dispersão) + kit comum
     ├── features/           domínio compartilhado: swipe, sheet do grupo, sheet do match, celebração
     └── pages/              uma pasta por tela; cada uma exporta init(section) e onShow()

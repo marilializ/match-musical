@@ -28,7 +28,9 @@ export function rosca(fatias, largura, { unidade = '' } = {}) {
       ? `M${cx - externo},${cy}a${externo},${externo} 0 1,0 ${externo * 2},0a${externo},${externo} 0 1,0 ${-externo * 2},0Z`
       : `M${ponto(inicio, externo)}A${externo},${externo} 0 ${grande} 1 ${ponto(fim, externo)}L${ponto(fim, interno)}A${interno},${interno} 0 ${grande} 0 ${ponto(inicio, interno)}Z`;
     const pct = fmt((100 * f.valor) / total, 1);
-    return `<g class="hover-group"><path class="slice ${f.serie}" d="${d}" stroke="var(--color-surface)" stroke-width="2"
+    const meio = inicio + fatia / 2; // no hover a fatia se afasta 6px do centro, pela bissetriz
+    const saida = fatia >= Math.PI * 2 - 1e-6 ? '' : ` style="--dx:${(Math.cos(meio) * 6).toFixed(1)}px;--dy:${(Math.sin(meio) * 6).toFixed(1)}px"`;
+    return `<g class="hover-group"><path class="slice ${f.serie}" d="${d}" stroke="var(--color-surface)" stroke-width="2"${saida}
       data-tip="${esc(`${f.rotulo}: ${fmt(f.valor)} ${unidade} (${pct}%)`)}"/></g>`;
   }).join('');
 

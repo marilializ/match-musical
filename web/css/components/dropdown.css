@@ -1,0 +1,76 @@
+/*
+ * Painel flutuante (base do dropdown e do calendário) e <sync-dropdown>.
+ * O painel nasce do lado do gatilho (escala + opacidade curtas) e some igual;
+ * com movimento reduzido, só a opacidade.
+ */
+
+/* ---------- Painel flutuante ---------- */
+.floating {
+  --de: -4px; /* de onde o painel desliza: de cima quando abre para baixo */
+  position: fixed; inset: auto; margin: 0;
+  max-height: 360px;
+  padding: var(--space-1);
+  border: 0; border-radius: var(--radius-lg);
+  background: var(--color-surface-raised); color: var(--color-label);
+  box-shadow: var(--shadow-lg), 0 0 0 1px var(--material-edge);
+  overflow: auto; overscroll-behavior: contain;
+  opacity: 0; transform: translateY(var(--de)) scale(0.98);
+  transform-origin: top center;
+  transition:
+    opacity var(--dur-fast) var(--ease),
+    transform var(--dur-base) var(--ease-out),
+    overlay var(--dur-base) allow-discrete,
+    display var(--dur-base) allow-discrete;
+}
+.floating[data-lado="cima"] { --de: 4px; transform-origin: bottom center; }
+.floating:popover-open { opacity: 1; transform: none; }
+@starting-style { .floating:popover-open { opacity: 0; transform: translateY(var(--de)) scale(0.98); } }
+
+/* ---------- Gatilho (cápsula, como o chip) ---------- */
+sync-dropdown, sync-date-range { position: relative; display: inline-flex; max-width: 100%; min-width: 0; vertical-align: middle; }
+.dd-trigger {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  width: 100%; min-width: 0; height: var(--size-chip);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-fill);
+  font: var(--text-subhead); font-weight: var(--weight-medium); color: var(--color-label);
+  transition: background-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.dd-trigger:active { transform: scale(var(--press-scale)); }
+.dd-trigger[aria-expanded="true"] { background: color-mix(in srgb, var(--color-fill), var(--color-label) 8%); }
+@media (hover: hover) { .dd-trigger:hover { background: color-mix(in srgb, var(--color-fill), var(--color-label) 8%); } }
+.dd-trigger:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+.dd-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.dd-chevron { width: 16px; height: 16px; color: var(--color-label-2); transform: rotate(90deg); transition: transform var(--dur-base) var(--ease-out); }
+.dd-trigger[aria-expanded="true"] .dd-chevron { transform: rotate(-90deg); }
+
+/* Variante de campo: mais alta, para o seletor principal de uma tela */
+sync-dropdown[variant="field"] .dd-trigger { height: var(--size-field); padding: 0 var(--space-4); border-radius: var(--radius-md); font: var(--text-body); }
+
+/* ---------- Lista ---------- */
+.dd-menu { min-width: 200px; }
+.dd-menu:focus { outline: none; }
+.dd-option {
+  display: flex; align-items: center; gap: var(--space-3);
+  min-height: 36px; padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  font: var(--text-subhead); cursor: default; user-select: none;
+}
+.dd-option.is-active { background: var(--color-fill); }
+.dd-option[aria-selected="true"] { font-weight: var(--weight-semibold); }
+.dd-label { flex: 1; min-width: 0; }
+.dd-check { width: 16px; height: 16px; color: var(--color-accent-text); opacity: 0; transform: scale(0.6); transition: opacity var(--dur-fast) var(--ease), transform var(--dur-base) var(--ease-out); }
+.dd-option[aria-selected="true"] .dd-check { opacity: 1; transform: none; }
+.dd-group-label {
+  padding: var(--space-3) var(--space-3) var(--space-1);
+  font: var(--text-caption); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--color-label-2);
+}
+[role="group"]:first-child .dd-group-label { padding-top: var(--space-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .floating, .floating[data-lado="cima"] { transform: none; }
+  @starting-style { .floating:popover-open { transform: none; } }
+  .dd-chevron, .dd-check { transition: none; }
+}

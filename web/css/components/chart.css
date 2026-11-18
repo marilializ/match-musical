@@ -81,14 +81,18 @@
 .chart-body .dot { stroke: var(--color-surface); stroke-width: 2; } /* anel na cor do fundo separa pontos sobrepostos */
 .chart-body .crosshair { stroke: var(--color-label-3); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0; }
 
-/* Destaque ao passar o mouse: o resto recua, o item fica */
-.chart-body .mark, .chart-body .dot, .chart-body .slice { transition: opacity var(--dur-fast) var(--ease); }
-.chart-body svg:has(.hover-group:hover) .mark,
-.chart-body svg:has(.hover-group:hover) .dot,
-.chart-body svg:has(.hover-group:hover) .slice { opacity: 0.45; }
-.chart-body .hover-group:hover .mark,
-.chart-body .hover-group:hover .dot,
-.chart-body .hover-group:hover .slice { opacity: 1; }
+/* Destaque ao passar o mouse: o item sob o cursor ganha ênfase e o resto recua.
+   O recuo vale só para quem NÃO está sob o mouse (:not(:hover)); antes a regra de
+   recuar tinha especificidade maior e apagava o próprio item. */
+.chart-body :is(.mark, .dot, .slice, .rule) {
+  transition: opacity var(--dur-fast) var(--ease), transform var(--dur-base) var(--ease-out), stroke-width var(--dur-fast) var(--ease);
+}
+.chart-body :is(.dot, .slice) { transform-box: fill-box; transform-origin: center; }
+.chart-body svg:has(.hover-group:hover) .hover-group:not(:hover) :is(.mark, .dot, .slice) { opacity: 0.3; }
+.chart-body .hover-group:hover .dot { transform: scale(1.5); }                              /* ponto cresce */
+.chart-body .hover-group:hover .slice { transform: translate(var(--dx, 0px), var(--dy, 0px)); } /* fatia sai da rosca */
+.chart-body .hover-group:hover .rule { stroke-width: 3; }                                  /* média/mediana engrossa */
+.chart-body .hover-group:hover text { fill: var(--color-label); font-weight: 600; }        /* rótulos da barra */
 .chart-body .hover-group:hover .crosshair { opacity: 1; }
 
 /* ---------- Dica ---------- */
@@ -134,19 +138,7 @@
 .data-table tr.is-warn td { background: color-mix(in srgb, var(--color-warning) 16%, transparent); }
 .data-table tr.is-bad td { background: color-mix(in srgb, var(--color-nope) 14%, transparent); }
 
-/* ---------- Seletor compacto (filtro dentro do cartão) ---------- */
-.select {
-  height: var(--size-chip); max-width: 100%;
-  padding: 0 var(--space-8) 0 var(--space-3);
-  border: 0; border-radius: var(--radius-pill);
-  background: var(--color-fill) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E") no-repeat right var(--space-2) center / 16px;
-  font: var(--text-subhead); font-weight: var(--weight-medium); color: var(--color-label);
-  -webkit-appearance: none; appearance: none;
-  cursor: pointer;
-}
-.select:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
-input.select { padding-right: var(--space-3); background-image: none; cursor: text; }
-
 @media (prefers-reduced-motion: reduce) {
   .chart-tip { transform: none; }
+  .chart-body .hover-group:hover :is(.dot, .slice) { transform: none; }
 }

@@ -21,6 +21,8 @@ import { rosca } from '../../ui/charts/donut.js';
 import { linhas } from '../../ui/charts/line.js';
 import { histograma } from '../../ui/charts/histogram.js';
 import { dispersao } from '../../ui/charts/scatter.js';
+import '../../ui/dropdown.js';
+import '../../ui/date-range.js';
 
 const COR = { s1: 'var(--chart-1)', s2: 'var(--chart-2)', s3: 'var(--chart-3)' };
 const SERIE_DECISAO = { Like: 's1', Dislike: 's2', 'Super Like': 's3' }; // a cor segue a decisão
@@ -52,7 +54,7 @@ const ALCANCE = {
   instrumento: '[data-card="dispersao"]',
 };
 
-const filtroSelect = (chave, rotulo) => `<select class="select" data-f="${chave}" aria-label="${esc(rotulo)}"></select>`;
+const filtroSelect = (chave, rotulo) => `<sync-dropdown data-f="${chave}" label="${esc(rotulo)}"></sync-dropdown>`;
 
 function cartao(id) {
   const c = CARTOES[id];
@@ -73,12 +75,7 @@ function cartao(id) {
 }
 
 const cabecalho = (secao) => (secao.id === 'atividade'
-  ? `<div class="periodo" role="group" aria-label="Período">
-       <label>De <input class="select" type="date" data-f="inicio"></label>
-       <label>Até <input class="select" type="date" data-f="fim"></label>
-       <button class="chip" type="button" data-limpar hidden>Limpar</button>
-     </div>
-     <p class="periodo-erro" data-erro role="alert" hidden>A data final precisa ser igual ou depois da inicial.</p>`
+  ? '<sync-date-range data-periodo placeholder="Todo o período"></sync-date-range>'
   : '<span class="dash-scope">Todo o histórico</span>');
 
 export function createOverview(root) {
@@ -109,34 +106,32 @@ export function createOverview(root) {
 
   // Ouvintes por delegação, registrados uma vez (a estrutura pode ser refeita depois de um erro)
   root.addEventListener('change', (event) => {
+    const periodo = event.target.closest('[data-periodo]');
+    if (periodo) {
+      filtros.inicio = periodo.inicio;
+      filtros.fim = periodo.fim;
+      carregar(ALCANCE.inicio);
+      return;
+    }
     const campo = event.target.closest('[data-f]');
     if (!campo) return;
     filtros[campo.dataset.f] = campo.value;
     carregar(ALCANCE[campo.dataset.f]);
   });
   root.addEventListener('click', (event) => {
-    if (event.target.closest('[data-tentar]')) { carregar(); return; }
-    if (!event.target.closest('[data-limpar]')) return;
-    filtros.inicio = filtros.fim = '';
-    root.querySelectorAll('[data-f="inicio"], [data-f="fim"]').forEach((campo) => { campo.value = ''; });
-    carregar(ALCANCE.inicio);
+    if (event.target.closest('[data-tentar]')) carregar();
   });
 
   /** Preenche os combos de filtro com o que existe no banco, mantendo a escolha. */
   function opcoes(campo, itens, todos) {
-    const select = root.querySelector(`select[data-f="${campo}"]`);
-    const atual = filtros[campo];
-    select.innerHTML = `<option value="">${todos}</option>${itens.map(([valor, texto]) =>
-      `<option value="${esc(valor)}"${String(valor) === atual ? ' selected' : ''}>${esc(texto)}</option>`).join('')}`;
+    const lista = root.querySelector(`sync-dropdown[data-f="${campo}"]`);
+    lista.options = [['', todos], ...itens];
+    lista.value = filtros[campo];
   }
 
   /** @param alcance seletor do que o filtro muda (esmaece só isso); sem ele, tudo. */
   async function carregar(alcance) {
-    if (!montado) estrutura();
-    const periodoInvalido = Boolean(filtros.inicio && filtros.fim && filtros.fim < filtros.inicio);
-    root.querySelector('[data-erro]').hidden = !periodoInvalido;
-    root.querySelector('[data-limpar]').hidden = !(filtros.inicio || filtros.fim);
-    if (periodoInvalido) return;
+    if (!montado) { estrutura(); root.querySelector('[data-periodo]').definir(filtros.inicio, filtros.fim); }
 
     const meu = ++pedido;
     const esmaecer = alcance && dados ? root.querySelector(alcance) : root;

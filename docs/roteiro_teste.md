@@ -88,7 +88,7 @@ mvn -q compile exec:java "-Dexec.mainClass=WebMain"    # abrir http://127.0.0.1:
 
 **Pessoas 3 e 6 — consultas e dashboard (Swing)**
 
-- [ ] **Dashboard → Consultas**: o combo lista 12 consultas (1 a 8 da Etapa 3, 9 a 12 da Etapa 4). Na 9 (anti join), escolher uma categoria principal muda a lista; na 10 (subconsulta correlacionada), escolher um instrumento; na 12 (auditoria), filtrar *Consistente* e conferir a cor verde de cada linha.
+- [ ] **Dashboard → Consultas**: o combo lista 12 consultas (1 a 8 da Etapa 3, 9 a 12 da Etapa 4). Na 9 (anti join), escolher uma categoria principal muda a lista; na 10 (subconsulta com `IN`), escolher uma categoria principal; na 12 (auditoria), filtrar *Consistente* e conferir a cor verde de cada linha.
 - [ ] **Dashboard → Visao geral**: 7 cartoes (6 indicadores + taxa media de retribuicao) e 6 graficos numerados, alem do de generos. Preencher o periodo muda os cartoes de match e os graficos 3, 4 e 5; trocar situacao do match muda o histograma e as medidas; trocar instrumento muda a dispersao e o r de Pearson.
 - [ ] **Aceitacao:** inserir um swipe em **Swipes e Matches** e, no dashboard, clicar em *Atualizar dados*: a pizza (3) e a linha semanal (4) contam o swipe novo.
 

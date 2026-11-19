@@ -62,14 +62,19 @@ public class DashboardEtapa6Check {
                         + DASHBOARD.executar(auditoria, "Like mutuo sem match").linhas().size(),
                 "Auditoria deveria ter 1 linha por Match + os likes mutuos sem Match.");
 
-        // 10: subconsulta correlacionada filtrada por instrumento
-        DashboardDAO.Opcao instrumento = DASHBOARD.instrumentos().get(0);
-        DashboardDAO.Resultado porInstrumento = DASHBOARD.executar(ConsultaSQL.numero(10), instrumento.id());
-        for (Object[] linha : porInstrumento.linhas()) {
-            exigir(instrumento.nome().equals(linha[porInstrumento.indice("instrumento")]), "Filtro de instrumento falhou.");
-            double anos = ((Number) linha[porInstrumento.indice("anos_experiencia")]).doubleValue();
-            double media = ((Number) linha[porInstrumento.indice("media_do_instrumento")]).doubleValue();
-            exigir(anos > media - 0.05, "Consulta 10 trouxe alguem abaixo da media.");
+        // 10: subconsulta IN (Like em grupo com vaga aberta), filtrada por categoria
+        ConsultaSQL interessados = ConsultaSQL.numero(10);
+        exigir(DASHBOARD.executar(interessados, null).linhas().size()
+                        == contar("SELECT COUNT(*) FROM Swipe s JOIN Musico m ON m.id_usuario = s.id_usuario_realizou "
+                        + "JOIN Grupo_Musical g ON g.id_usuario = s.id_usuario_encontrado "
+                        + "WHERE s.tipo_decisao = 'Like' AND EXISTS (SELECT 1 FROM Vaga v "
+                        + "WHERE v.id_grupo_musical = s.id_usuario_encontrado AND v.situacao = 'Aberta')"),
+                "Consulta 10 nao bate com o EXISTS equivalente (o IN nao pode duplicar swipes).");
+        String categoriaInteressados = DASHBOARD.categorias().get(0);
+        DashboardDAO.Resultado interessadosPorCategoria = DASHBOARD.executar(interessados, categoriaInteressados);
+        int colunaCategoria = interessadosPorCategoria.indice("categoria_principal");
+        for (Object[] linha : interessadosPorCategoria.linhas()) {
+            exigir(categoriaInteressados.equals(linha[colunaCategoria]), "Filtro de categoria da consulta 10 falhou.");
         }
 
         // 9: anti join filtrado por categoria

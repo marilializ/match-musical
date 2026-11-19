@@ -17,38 +17,61 @@ ORDER BY m.id_usuario;
 
 
 -- =====================================================
--- CONSULTA 2: Músicos com experiência acima da média
---             no próprio instrumento
--- Conceito: SUBCONSULTA CORRELACIONADA no WHERE (a média é
---           recalculada para o instrumento de cada linha de
---           Toca) + subconsulta escalar correlacionada no SELECT
--- Pergunta que responde: "Quem tem mais anos de experiência
--- em um instrumento do que a média de quem toca esse mesmo
--- instrumento?"
--- (no Java, o instrumento vira um filtro opcional ?)
--- Escrita na Etapa 6 para completar as 4 consultas da Etapa 4
--- (anti join, full outer join e 2 subconsultas): o script
--- tinha só as consultas 1 e 3.
+-- CONSULTA 2: Músicos interessados em grupos que estão
+--             contratando
+-- Conceito: SUBCONSULTA com IN (...)
+-- Pergunta que responde: "Quais músicos deram Like em
+-- grupos que estão contratando, ou seja, que têm pelo
+-- menos uma vaga aberta?"
+-- (no Java, a categoria principal vira um filtro opcional ?)
+-- Escrita na Etapa 4 (branch etapa4-subconsulta-in, arquivo
+-- subconsulta_a_in_swipe_vaga.sql) e trazida para cá na
+-- Etapa 6; a coluna categoria_principal entrou para o filtro.
+--
+-- Decisões de projeto:
+--  * A subconsulta IN lista os grupos com vaga aberta:
+--    SELECT id_grupo_musical FROM Vaga WHERE situacao =
+--    'Aberta'. A consulta externa só mantém os swipes cujo
+--    id_usuario_encontrado está nessa lista.
+--  * IN e não JOIN com Vaga: um grupo pode ter várias vagas
+--    abertas (ex.: o grupo 31 tem 2). Com JOIN, o mesmo
+--    swipe apareceria uma vez por vaga. O IN só pergunta
+--    "o grupo está na lista?", então não duplica linhas.
+--  * Considera apenas tipo_decisao = 'Like', como no
+--    enunciado da tarefa. 'Super Like' ficou de fora de
+--    propósito (a auditoria Swipe x Match conta os dois como
+--    interesse). Para incluir, bastaria trocar o filtro por
+--    tipo_decisao IN ('Like', 'Super Like').
+--  * Quem fez o swipe precisa ser MÚSICO: o JOIN com Musico
+--    em id_usuario_realizou descarta os swipes feitos por
+--    grupos (Usuario é superentidade de Musico e Grupo).
+--  * O JOIN com Grupo_Musical em id_usuario_encontrado traz
+--    o nome do grupo e garante que o alvo do swipe é um grupo.
+--  * Sem DISTINCT: Swipe não tem UNIQUE, então o mesmo
+--    músico pode dar Like no mesmo grupo mais de uma vez;
+--    cada Like é um evento com data_hora própria, e data_hora
+--    faz parte da saída. Nenhum JOIN desta consulta multiplica
+--    linhas: Musico e Grupo_Musical são ligados pela PK.
 -- =====================================================
 SELECT
-    m.id_usuario        AS id_musico,
-    m.nome,
-    i.nome              AS instrumento,
-    t.tempo_experiencia AS anos_experiencia,
-    (SELECT ROUND(AVG(t2.tempo_experiencia), 1)
-       FROM Toca t2
-      WHERE t2.id_instrumento = t.id_instrumento) AS media_do_instrumento
-FROM Toca t
+    m.id_usuario AS id_musico,
+    m.nome       AS nome_musico,
+    m.categoria_principal,
+    g.id_usuario AS id_grupo,
+    g.nome_grupo,
+    s.data_hora  AS data_hora_swipe
+FROM Swipe s
 JOIN Musico m
-    ON m.id_usuario = t.id_musico
-JOIN Instrumento i
-    ON i.id_instrumento = t.id_instrumento
-WHERE t.tempo_experiencia > (
-    SELECT AVG(t3.tempo_experiencia)
-    FROM Toca t3
-    WHERE t3.id_instrumento = t.id_instrumento
-)
-ORDER BY i.nome, anos_experiencia DESC, m.nome;
+    ON m.id_usuario = s.id_usuario_realizou
+JOIN Grupo_Musical g
+    ON g.id_usuario = s.id_usuario_encontrado
+WHERE s.tipo_decisao = 'Like'
+  AND s.id_usuario_encontrado IN (
+      SELECT v.id_grupo_musical
+        FROM Vaga v
+       WHERE v.situacao = 'Aberta'
+  )
+ORDER BY g.nome_grupo, m.nome, s.data_hora;
 
 
 -- =====================================================
@@ -90,6 +113,11 @@ ORDER BY c.qtd_ativos DESC, g.nome_grupo;
 -- EXPLAIN (vw_recomendacao_vagas, tabela Vaga):
 --   antes:  type = ALL, key = NULL, lê 35 linhas
 --   depois: type = ref, key = idx_vaga_situacao_grupo, lê 27
+-- EXPLAIN (consulta 2, subconsulta IN sobre Vaga):
+--   depois: semijoin (FirstMatch) com "Covering index lookup
+--           on v using idx_vaga_situacao_grupo": o índice
+--           sozinho responde (situacao, id_grupo_musical),
+--           e o FirstMatch para na 1ª vaga de cada grupo.
 -- Cardinalidade: 27 de 35 vagas estão abertas, então o
 -- ganho é pequeno com estes dados.
 -- =====================================================

@@ -4,7 +4,7 @@ import java.util.List;
  * As 12 consultas mostradas na aba "Consultas" do dashboard:
  *  - 1 a 8: Etapa 3, com o mesmo SQL de sql/04_consultas.sql;
  *  - 9 a 12: Etapa 4, com o SQL de sql/05_consultas_avancadas.sql (anti join e
- *    as 2 subconsultas) e de sql/consulta_full_outer_join_swipe_match.sql
+ *    as 2 subconsultas, IN e tabela derivada) e de sql/consulta_full_outer_join_swipe_match.sql
  *    (auditoria Swipe x Match, FULL OUTER JOIN emulado).
  * Cada consulta guarda um titulo, a pergunta de negocio que ela responde e
  * o SQL puro que e enviado ao banco por PreparedStatement (sem ORM).
@@ -217,31 +217,31 @@ public record ConsultaSQL(int numero, String origem, String titulo, String pergu
                     ORDER BY m.id_usuario
                     """, Parametro.CATEGORIA, "nome"),
 
-            new ConsultaSQL(10, "Etapa 4", "Experiência acima da média no instrumento",
-                    "Quem tem mais anos de experiência em um instrumento do que a média de quem toca"
-                            + " esse mesmo instrumento (subconsulta correlacionada)?",
+            new ConsultaSQL(10, "Etapa 4", "Músicos interessados em grupos contratando",
+                    "Quais músicos deram Like em grupos que têm pelo menos uma vaga aberta"
+                            + " (subconsulta com IN)?",
                     """
                     SELECT
-                        m.id_usuario        AS id_musico,
-                        m.nome,
-                        i.nome              AS instrumento,
-                        t.tempo_experiencia AS anos_experiencia,
-                        (SELECT ROUND(AVG(t2.tempo_experiencia), 1)
-                           FROM Toca t2
-                          WHERE t2.id_instrumento = t.id_instrumento) AS media_do_instrumento
-                    FROM Toca t
+                        m.id_usuario AS id_musico,
+                        m.nome       AS nome_musico,
+                        m.categoria_principal,
+                        g.id_usuario AS id_grupo,
+                        g.nome_grupo,
+                        s.data_hora  AS data_hora_swipe
+                    FROM Swipe s
                     JOIN Musico m
-                        ON m.id_usuario = t.id_musico
-                    JOIN Instrumento i
-                        ON i.id_instrumento = t.id_instrumento
-                    WHERE t.tempo_experiencia > (
-                        SELECT AVG(t3.tempo_experiencia)
-                        FROM Toca t3
-                        WHERE t3.id_instrumento = t.id_instrumento
-                    )
-                      AND (? IS NULL OR t.id_instrumento = ?)
-                    ORDER BY i.nome, anos_experiencia DESC, m.nome
-                    """, Parametro.INSTRUMENTO, "anos_experiencia"),
+                        ON m.id_usuario = s.id_usuario_realizou
+                    JOIN Grupo_Musical g
+                        ON g.id_usuario = s.id_usuario_encontrado
+                    WHERE s.tipo_decisao = 'Like'
+                      AND s.id_usuario_encontrado IN (
+                          SELECT v.id_grupo_musical
+                            FROM Vaga v
+                           WHERE v.situacao = 'Aberta'
+                      )
+                      AND (? IS NULL OR m.categoria_principal = ?)
+                    ORDER BY g.nome_grupo, m.nome, s.data_hora
+                    """, Parametro.CATEGORIA, "nome_grupo"),
 
             new ConsultaSQL(11, "Etapa 4", "Grupos com mais integrantes que a média",
                     "Quais grupos têm mais integrantes ativos do que a média dos grupos"

@@ -46,8 +46,8 @@ Passaram `Etapa6IntegrationCheck`, `SwipeMatchDAOIntegrationCheck`, `MusicoDAOIn
 ## Atualização de 18/11/2026 — frentes 3 e 6 fechadas
 
 **Pessoa 3 (consultas).** A aba *Consultas* do dashboard Swing tem as **12 consultas**: 1 a 8 da Etapa 3 e 9 a 12 da Etapa 4.
-- A consulta 2 da Etapa 4 (**subconsulta correlacionada**: quem tem mais anos em um instrumento do que a média desse instrumento) não existia em nenhuma versão do `05`; foi escrita e entrou no `05_consultas_avancadas.sql`, que já roda no reset. Com ela, as 4 da Etapa 4 ficam: anti join (9), subconsulta correlacionada (10), subconsulta no FROM (11) e full outer join emulado (12). **Conferir com o PDF da Etapa 4 se a consulta 2 pedida era outra.**
-- Parâmetros por `PreparedStatement`: músico (6), categoria principal (9), instrumento (10) e diagnóstico (12), estes três opcionais com `(? IS NULL OR coluna = ?)`. Na consulta 1 da Etapa 4 entrou a coluna `categoria_principal`, para o filtro ser visível.
+- A consulta 2 da Etapa 4 (**subconsulta com `IN`**: músicos que deram Like em grupos com vaga aberta, como pede o PDF da Etapa 4) foi escrita no branch `etapa4-subconsulta-in` (`sql/subconsulta_a_in_swipe_vaga.sql`), que não tinha entrado na `main`. Ela foi levada para o `05_consultas_avancadas.sql`, que já roda no reset, no lugar de uma subconsulta correlacionada provisória. Com ela, as 4 da Etapa 4 ficam: anti join (9), subconsulta com IN (10), subconsulta no FROM (11) e full outer join emulado (12).
+- Parâmetros por `PreparedStatement`: músico (6), categoria principal (9 e 10) e diagnóstico (12), estes três opcionais com `(? IS NULL OR coluna = ?)`. Na consulta 1 da Etapa 4 entrou a coluna `categoria_principal`, para o filtro ser visível.
 - Destaque visual: a coluna que responde a pergunta fica em negrito azul; na auditoria, cada linha tem a cor do diagnóstico. `ConsultaSQL.java` e o README falam em 12 consultas.
 
 **Pessoa 6 (dashboard).** A aba *Visão geral* tem:
